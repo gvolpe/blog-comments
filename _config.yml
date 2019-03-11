@@ -1,0 +1,25 @@
+# Site settings
+title: gvolpe's blog
+description: Principled Software Craftsmanship
+baseurl: "/blog"
+url: "https://gvolpe.github.io"
+
+author:
+  name     : 'Gabriel'
+  url      : https://gvolpe.github.io
+  twitter  : http://twitter.com/volpegabriel87
+
+github: https://github.com/gvolpe
+disqus_shortname: "gvolpe"
+
+paginate: 2
+comments: true
+paginate_path: "/page/:num"
+
+sass:
+  style: :compressed
+  sass_dir: _sass
+
+# Build settings
+markdown  : kramdown
+permalink : /:title/
