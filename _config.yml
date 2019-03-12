@@ -2,14 +2,14 @@
 title: gvolpe's blog
 description: Principled Software Craftsmanship
 baseurl: "/blog"
-url: "https://gvolpe.github.io"
+url: "http://gvolpe.github.io"
 
 author:
   name     : 'Gabriel'
-  url      : https://gvolpe.github.io
+  url      : http://gvolpe.github.io
   twitter  : http://twitter.com/volpegabriel87
 
-github: https://github.com/gvolpe
+github: http://github.com/gvolpe
 disqus_shortname: "gvolpe"
 
 paginate: 2

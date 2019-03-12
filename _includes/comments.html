@@ -11,7 +11,8 @@
       var disqus_shortname = '{{ site.disqus_shortname }}';
       var disqus_identifier = '{{ page.id }}';
       var disqus_title = '{{ page.title }}';
-      var disqus_url = '{{ site.url }}{{ post.url }}';
+      var disqus_url = '{{ site.url }}{{ site.baseurl }}/{{ post.url }};
+      //var disqus_url = 'https://gvolpe.github.io/blog/{{ post.url }}';
       /*var disqus_developer = 1;*/
 
       (function() {
