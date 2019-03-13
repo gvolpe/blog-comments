@@ -224,6 +224,17 @@ object Console {
 
 Unfortunately the generated JVM bytecode was the same as without trying to inline it so the benchmark results were very similar to the first results.
 
+#### -opt:l:inline compiler flag
+
+[Kaidax](https://twitter.com/kaidaxofficial) suggested turning on one of the inliner compiler flags as described in this [Lightbend blog post](https://developer.lightbend.com/blog/2018-11-01-the-scala-2.12-2.13-inliner-and-optimizer/index.html). The generated JVM bytecode was not optimized either but somehow the benchmarks seemed to be favorable (?).
+
+{% highlight bash %}
+sbt> jmh:run -i 20 -wi 5 -f1 -t1
+[info] Benchmark             Mode  Cnt      Score     Error  Units
+[info] contextBoundSummoner  thrpt   20  16341.987 ± 672.911  ops/s
+[info] evidenceSummoner      thrpt   20  17074.474 ± 482.748  ops/s
+{% endhighlight %}
+
 #### Benchmarking machine
 
 The benchmarks have run on a Ubuntu 18.04 LTS, 16 GB RAM and Intel® Core™ i7-8550U CPU @ 1.80GHz × 8 machine on Java Oracle™ 8:
@@ -232,6 +243,10 @@ The benchmarks have run on a Ubuntu 18.04 LTS, 16 GB RAM and Intel® Core™ i7-
 Java(TM) SE Runtime Environment (build 1.8.0_161-b12)
 Java HotSpot(TM) 64-Bit Server VM (build 25.161-b12, mixed mode)
 {% endhighlight %}
+
+#### Source code
+
+Try it out yourself: https://github.com/gvolpe/summoner-benchmarks
 
 ### Conclusion #2
 
