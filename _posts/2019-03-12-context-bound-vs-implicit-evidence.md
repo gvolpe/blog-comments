@@ -224,15 +224,89 @@ object Console {
 
 Unfortunately the generated JVM bytecode was the same as without trying to inline it so the benchmark results were very similar to the first results.
 
-#### -opt:l:inline compiler flag
+#### `-opt:l:inline` & `-opt-inline-from:**` compiler flags
 
-[Kaidax](https://twitter.com/kaidaxofficial) suggested turning on one of the inliner compiler flags as described in this [Lightbend blog post](https://developer.lightbend.com/blog/2018-11-01-the-scala-2.12-2.13-inliner-and-optimizer/index.html). The generated JVM bytecode was not optimized either but somehow the benchmarks seemed to be favorable (?).
+[Kaidax](https://twitter.com/kaidaxofficial) suggested turning on the inliner compiler flags as described in this [Lightbend blog post](https://developer.lightbend.com/blog/2018-11-01-the-scala-2.12-2.13-inliner-and-optimizer/index.html). At first I didn't see any results but after being pointed out on Reddit by [/u/zzyzzyxx](https://www.reddit.com/user/zzyzzyxx) that I was doing it wrong (thanks!), I tried once again and the bytecode was effectively changed.
+
+The calls to `invokevirtual` have been removed and a bunch of extra instructions have been added.
+
+{% highlight java %}
+public <F extends java.lang.Object> F p1(cats.Applicative<F>, com.github.gvolpe.Console<F>);
+  descriptor: (Lcats/Applicative;Lcom/github/gvolpe/Console;)Ljava/lang/Object;
+  flags: ACC_PUBLIC
+  Code:
+    stack=4, locals=3, args_size=3
+       0: getstatic     #56                 // Field cats/implicits$.MODULE$:Lcats/implicits$;
+       3: getstatic     #56                 // Field cats/implicits$.MODULE$:Lcats/implicits$;
+       6: getstatic     #61                 // Field com/github/gvolpe/Console$.MODULE$:Lcom/github/gvolpe/Console$;
+       9: ifnonnull     14
+      12: aconst_null
+      13: athrow
+      14: aload_2
+      15: ldc           #63                 // String a
+      17: invokeinterface #69,  2           // InterfaceMethod com/github/gvolpe/Console.putStrLn:(Ljava/lang/Object;)Ljava/lang/Object;
+      22: aload_1
+      23: invokevirtual #73                 // Method cats/implicits$.catsSyntaxApply:(Ljava/lang/Object;Lcats/Apply;)Lcats/Apply$Ops;
+      26: getstatic     #61                 // Field com/github/gvolpe/Console$.MODULE$:Lcom/github/gvolpe/Console$;
+      29: ifnonnull     34
+      32: aconst_null
+      33: athrow
+      34: aload_2
+      35: ldc           #75                 // String b
+      37: invokeinterface #69,  2           // InterfaceMethod com/github/gvolpe/Console.putStrLn:(Ljava/lang/Object;)Ljava/lang/Object;
+      42: invokeinterface #78,  2           // InterfaceMethod cats/Apply$Ops.$times$greater:(Ljava/lang/Object;)Ljava/lang/Object;
+      47: aload_1
+      48: invokevirtual #73                 // Method cats/implicits$.catsSyntaxApply:(Ljava/lang/Object;Lcats/Apply;)Lcats/Apply$Ops;
+      51: getstatic     #61                 // Field com/github/gvolpe/Console$.MODULE$:Lcom/github/gvolpe/Console$;
+      54: ifnonnull     59
+      57: aconst_null
+      58: athrow
+      59: aload_2
+      60: ldc           #80                 // String c
+      62: invokeinterface #69,  2           // InterfaceMethod com/github/gvolpe/Console.putStrLn:(Ljava/lang/Object;)Ljava/lang/Object;
+      67: invokeinterface #78,  2           // InterfaceMethod cats/Apply$Ops.$times$greater:(Ljava/lang/Object;)Ljava/lang/Object;
+      72: areturn
+    StackMapTable: number_of_entries = 3
+      frame_type = 255 /* full_frame */
+        offset_delta = 14
+        locals = [ class com/github/gvolpe/summoner$, class cats/Applicative, class com/github/gvolpe/Console ]
+        stack = [ class cats/implicits$, class cats/implicits$ ]
+      frame_type = 255 /* full_frame */
+        offset_delta = 19
+        locals = [ class com/github/gvolpe/summoner$, class cats/Applicative, class com/github/gvolpe/Console ]
+        stack = [ class cats/implicits$, class cats/Apply$Ops ]
+      frame_type = 88 /* same_locals_1_stack_item */
+        stack = [ class cats/Apply$Ops ]
+    LineNumberTable:
+      line 10: 0
+      line 34: 14
+      line 10: 14
+      line 11: 26
+      line 34: 34
+      line 11: 34
+      line 10: 47
+      line 12: 51
+      line 34: 59
+      line 12: 59
+    LocalVariableTable:
+      Start  Length  Slot  Name   Signature
+          0      73     0  this   Lcom/github/gvolpe/summoner$;
+          0      73     1 evidence$1   Lcats/Applicative;
+          0      73     2 evidence$2   Lcom/github/gvolpe/Console;
+  Signature: #49                          // <F:Ljava/lang/Object;>(Lcats/Applicative<TF;>;Lcom/github/gvolpe/Console<TF;>;)TF;
+  MethodParameters:
+    Name                           Flags
+    evidence$1                     final
+    evidence$2                     final
+{% endhighlight %}
+
+The benchmark results show that it has effectively been optimized:
 
 {% highlight bash %}
 sbt> jmh:run -i 20 -wi 5 -f1 -t1
 [info] Benchmark             Mode  Cnt      Score     Error  Units
-[info] contextBoundSummoner  thrpt   20  16341.987 ± 672.911  ops/s
-[info] evidenceSummoner      thrpt   20  17074.474 ± 482.748  ops/s
+[info] contextBoundSummoner  thrpt   20  16330.873 ± 462.765  ops/s
+[info] evidenceSummoner      thrpt   20  15768.175 ± 587.291  ops/s
 {% endhighlight %}
 
 #### Benchmarking machine
