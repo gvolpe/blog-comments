@@ -44,9 +44,9 @@ So right now this is my effect of choice and it's the one you'll see in the exam
 
 > It's worth mentioning other (higher-order) effects like [fused-effects](https://github.com/fused-effects/fused-effects) and [polysemy](https://github.com/polysemy-research/polysemy), and also [capability](https://github.com/tweag/capability). I think we should all keep an eye on them as they look promising and propose a different take on effects.
 
-### Polymorhic record of functions
+### Polymorphic record of functions
 
-This is by far the best way I know of defining polymorphic interfaces. Eg:
+This is by far the best way I know of defining polymorphic interfaces.
 
 {% highlight haskell %}
 data Cache m = Cache
@@ -162,16 +162,20 @@ Finally, you need to choose a test library. I went with [hedgehog](https://hacka
 {% highlight haskell %}
 prop_get_rates :: Cache IO -> Property
 prop_get_rates cache = withTests 1000 $ property $ do
-  let ctx = Ctx testLogger cache testForexClient
+  rph     <- forAll $ Gen.int (Range.linear 0 10)
+  count   <- forAll $ Gen.int (Range.linear 0 10)
+  let ctx = Ctx testLogger cache (mkTestCounter count) (mkTestForexClient rph)
   service <- evalIO $ runRIO ctx mkExchangeService
   from    <- forAll $ Gen.element currencies
   to      <- forAll $ Gen.element currencies
   cached  <- evalIO $ cachedExchange cache from to
-  result  <- evalIO $ getRate service from to
-  result === fromMaybe (Exchange 1.0) cached
+  evalIO (try (getRate service from to) :: TryRate) >>= \case
+    Right rs -> rs === fromMaybe (Exchange 1.0) cached
+    Left  _  -> assert (count >= rph)
 {% endhighlight %}
 
-Basically a test `Ctx` is passed to our function and then an assertion runs at the end.
+If we get a `Right rs` then we assert that the rate is equals to the one cached or the one returned by the forex
+client. If we get a `Left e` instead that means that the Api limit has been reached so we assert that the counter is greater or equals than the "requests per hour" value.
 
 #### Web server
 
@@ -221,7 +225,7 @@ instance ToJSON ExchangeResponse
 
 ### Conclusion
 
-These are some of the best practices I know of nowadays. But we all know this is a constant learning process, it doesn't end here. Anyway I hope you can get something out of it!
+These are some of the best practices I know of nowadays. But we all know this is a constant learning process, it doesn't end here. Anyway, I hope you can get something out of it!
 
 ##### Summarizing:
 
