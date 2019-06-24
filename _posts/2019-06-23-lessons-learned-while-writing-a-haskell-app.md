@@ -217,9 +217,8 @@ data ExchangeResponse = ExchangeResponse
   { rate :: Float
   , from :: Currency
   , to :: Currency
-  } deriving (Generic, Show, Typeable)
+  } deriving (Generic, Show)
 
-instance ToJSON Currency
 instance ToJSON ExchangeResponse
 {% endhighlight %}
 
