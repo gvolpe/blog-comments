@@ -15,7 +15,7 @@ recommendations when writing a Haskell application.
 
 ### Configuration
 
-I tried a couple of libraries where you must write your configuration file using either `yaml`, `hocon` or `json` but I wasn't conformed until I've been recommended to use [dhall-lang](https://dhall-lang.org/). It's a configuration language guaranteed to terminate that has also Haskell bindings, [nicely packaged](https://hackage.haskell.org/package/dhall) for easy use. It looks as follows:
+I tried a couple of libraries where you must write your configuration file using either `yaml`, `hocon` or `json` but I wasn't satisfied until I've been recommended to use [dhall-lang](https://dhall-lang.org/). It's a configuration language guaranteed to terminate that has also Haskell bindings, [nicely packaged](https://hackage.haskell.org/package/dhall) for easy use. It looks as follows:
 
 {% highlight haskell %}
 let Env = < Test : {} | Prod : {} >
@@ -40,7 +40,7 @@ library for Haskell](https://hackage.haskell.org/package/rio).
 
 It doesn't only package `RIO`, its monadic effect, but also its own prelude. And in addition, it re-exports a bunch of other goodies such as error handling and lenses functions.
 
-So right now this is my effect of choice and it's the one you'll see in the examples below.
+So right now this is my effect system of choice and it's the one you'll see in the examples below.
 
 > It's worth mentioning other (higher-order) effects like [fused-effects](https://github.com/fused-effects/fused-effects) and [polysemy](https://github.com/polysemy-research/polysemy), and also [capability](https://github.com/tweag/capability). I think we should all keep an eye on them as they look promising and propose a different take on effects.
 
@@ -224,7 +224,7 @@ instance ToJSON ExchangeResponse
 
 ### Conclusion
 
-These are some of the best practices I know of nowadays. But we all know this is a constant learning process, it doesn't end here. Anyway, I hope you can get something out of it!
+These are some of the best practices I know of nowadays. But we all know this is a continuous learning process, it doesn't end here. Anyway, I hope you can get something out of it!
 
 ##### Summarizing:
 
