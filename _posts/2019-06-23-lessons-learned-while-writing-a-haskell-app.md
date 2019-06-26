@@ -65,6 +65,12 @@ data Counter m = Counter
 
 The advantage is that we can create different interpreters using different effect types. For example, the main implementation of `Cache m` uses `Redis` whereas the test one uses an in-memory map stored in an `IORef`.
 
+##### Why not typeclasses?
+
+Typeclasses are probably what come first when we think about polymorphic interfaces. However, they need laws / properties that define whether an instance is a valid one or not. Secondly, we can only define a single instance for a specific type. This is called coherence. If we can do that, great! If we fail then we would be better off using a record of functions instead.
+
+To further defend this argument I should, perhaps, write another blog post only on this topic showing examples and expanding on the idea.
+
 ### Smart constructors
 
 In order to create a specific record of functions it is recommended to hide its constructor and instead export a *smart constructor*. These are plain functions, normally effectful, responsible for the creation of a single interface. For convention, I chose to prefix them with `mk` (for make).
@@ -103,7 +109,7 @@ mkRedisCache :: HasRedisConfig env => RIO env (Cache IO)
 {% endhighlight %}
 
 {% highlight haskell %}
-mkForexClient :: HasForexConfig ctx => RIO ctx (ForexClient IO)
+mkForexClient :: HasForexConfig env => RIO env (ForexClient IO)
 {% endhighlight %}
 
 For our main Cache (implemented using [hedis](https://hackage.haskell.org/package/hedis)) and the Forex Client (http client using [wreq](https://hackage.haskell.org/package/wreq)) I chose to be concrete, using `RIO` and the `Has` pattern.
@@ -152,7 +158,7 @@ By making it polymorphic we get to choose our effect type and the dependencies n
 
 **Testing our main service**
 
-In this case it ended up being more practical testing using `IO` + `IORef`, given the constraint on `MonadMask`. But for demonstration purposes I wrote another version of the test suite using a [stack of monad
+In this case it ended up being more practical testing using `IO` + `IORef`, given the `MonadMask` constraint on `m`. But for demonstration purposes I wrote another version of the test suite using a [stack of monad
 transformers](https://github.com/gvolpe/exchange-rates/blob/master/test/Rates/CachedForexRST.hs) that doesn't use `IO`.
 
 The testing approach I followed is to create different interpreters for the dependencies of the main service and then run some property tests on it. So we have an in-memory cache, a dummy forex client that always returns the same response and a logger that doesn't log.
