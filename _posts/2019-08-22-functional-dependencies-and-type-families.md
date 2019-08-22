@@ -143,7 +143,7 @@ instance HasLogger (Ctx m) where
 
 Our class has once again a single parameter `ctx` and our functional dependency is now expressed as an *associated type* of the class (type family). It behaves like a function at the type level, so we can call `LoggerF` a type function.
 
-Notice how we explicitly define the kind of our type function to be `* -> *`. If we don't do it the default inferred kind will just be `*`.
+Notice how we explicitly define the kind of our type function to be `* -> *` (or `Type -> Type`). If we don't do it the default inferred kind will just be `*` (or `Type`).
 
 ##### Arithmetic example
 
