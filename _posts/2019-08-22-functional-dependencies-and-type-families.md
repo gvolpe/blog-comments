@@ -6,13 +6,17 @@ categories: haskell
 comments: true
 ---
 
-In the past few months I have learnt a lot! Probably the coolest stuff has been about Functional Dependencies and Type Families, so this is my attempt to explain it in order to gain a better understanding and hopefully help someone else out there as well.
+In the past few months I have learnt a lot! Probably the coolest stuff has been about [Functional Dependencies](https://wiki.haskell.org/Functional_dependencies) and [Type Families](https://wiki.haskell.org/GHC/Type_families), so this is my attempt to explain it in order to gain a better understanding and hopefully help someone else out there as well.
 
 So please be kind if you see any mistake, let me know and I'll try to fix it :)
 
 ### A motivating example
 
-Here's a `Ctx` record defining the application dependencies (taken from [exchange-rates](https://github.com/gvolpe/exchange-rates)):
+One of the fun applications I've worked on is [exchange-rates](https://github.com/gvolpe/exchange-rates), which uses the [RIO Monad](https://www.fpcomplete.com/blog/2017/07/the-rio-monad) (basically `ReaderT` + `IO`).
+
+When defining dependencies using such effect is very common to do it using the [Has typeclass approach](https://www.fpcomplete.com/blog/2017/06/readert-design-pattern) (or how I prefer to call it, the *classy lenses Has pattern*) instead of passing the whole context / environment.
+
+Following this approach, I have defined a polymorphic `Ctx` record that represents the appliation context (or dependencies). It looks as follows:
 
 {% highlight haskell %}
 data Ctx m = Ctx
@@ -22,13 +26,13 @@ data Ctx m = Ctx
   }
 {% endhighlight %}
 
-And we would like to use the `Has` classy lenses pattern.
+If we continue with the `Has` approach we would get something like this for our `Logger m`:
 
 {% highlight haskell %}
 class HasLogger ctx where
   loggerL :: Lens' ctx (Logger m)
 
-instance Monad m => HasLogger (Ctx m) where
+instance HasLogger (Ctx m) where
   loggerL = lens ctxLogger (\x y -> x { ctxLogger = y })
 {% endhighlight %}
 
@@ -45,7 +49,7 @@ Couldn't match type ‘m1’ with ‘m’
         at src/Context.hs:26:10-47
 {% endhighlight %}
 
-The compiler has no way to know that the `m` in `Logger m` (declared in the type class) is the same as the `m` in `Ctx m` (declared in the instance), therefore the inferred type ends up being `Lens' (Ctx m) (Logger m1)`.
+The reason is that the compiler has no way to know that the `m` in `Logger m` (declared in the type class) is the same as the `m` in `Ctx m` (declared in the instance), therefore the inferred type ends up being `Lens' (Ctx m) (Logger m1)`.
 
 ### Functional Dependencies to the rescue
 
@@ -61,14 +65,14 @@ We need to change our type class definition as below:
 class HasLogger ctx m | ctx -> m where
   loggerL :: Lens' ctx (Logger m)
 
-instance Monad m => HasLogger (Ctx m) m where
+instance HasLogger (Ctx m) m where
   loggerL = lens ctxLogger (\x y -> x { ctxLogger = y })
 {% endhighlight %}
 
 Our type class has now two parameters, `ctx` and `m`, and in addition we define a *functional dependency* `ctx -> m`. This means that `ctx` uniquely determines the type of `m`, which constraints the possible instances and helps with type
 inference.
 
-Notice the extensions we had to enable to make this compile.
+> Notice the extensions we had to enable to make this compile.
 
 ##### Arithmetic example
 
@@ -85,7 +89,26 @@ instance Add a b c => Add (Succ a) b (Succ c)
 The functional dependency is pretty clear: given `a` and `b` we can add them together and produce `c`. So `a` and
 `b` uniquely determine `c`.
 
-Notice how we don't even need to define `add`, specifying the types is enough. We can try this out in the REPL:
+Notice how we don't even need to define `add`, specifying the types is enough! If it's still not clear, bare with me and let's perform type substitution step by step (feel free to skip this part):
+
+Given this instance, all we are saying is that:
+
+{% highlight haskell %}
+instance Add Zero b b where
+{% endhighlight %}
+
+- `a` is defined as `Zero`.
+- `b` is defined as `b`.
+- `c` is defined as `b`.
+
+Since we now know the types of `a`, `b` and `c`, defining the `add` function becomes redundant:
+
+{% highlight haskell %}
+instance Add Zero b b where
+  add Zero b = b
+{% endhighlight %}
+
+Clear now? Awesome! Let's try this out in the REPL:
 
 {% highlight haskell %}
 λ :t add (u::Three) (u::Zero)
@@ -113,7 +136,7 @@ class HasLogger ctx where
   type LoggerF ctx :: * -> *
   loggerL :: Lens' ctx (Logger (LoggerF ctx))
 
-instance Monad m => HasLogger (Ctx m) where
+instance HasLogger (Ctx m) where
   type LoggerF (Ctx m) = m
   loggerL = lens ctxLogger (\x y -> x { ctxLogger = y })
 {% endhighlight %}
@@ -180,11 +203,13 @@ Once the compiler knows what `m` is it's over. It'll know what the type of the m
 
 ### Final Thoughts
 
-If most use cases of `FunctionalDependencies` can be expressed using `TypeFamilies` then why does the former
-still exists? I don't really know the answer but given Haskell's history I believe it's because of compatibility and
-personal preferences.
+Most use cases of `FunctionalDependencies` can be expressed using `TypeFamilies`, however there are some subtle differences that come to light only in complex scenarios.
 
-Most library authors and developers prefer to use `TypeFamilies` nowadays. Its main advantage over
-`FunctionalDependencies` is speed and it's also possible to express many cases that require the extensions `TypeSynonymInstances`, `FlexibleInstances`, `MultiParamTypeClasses` and `UndecidableInstances` without them.
+Most library authors and developers prefer to use `TypeFamilies` nowadays. Its main advantage over `FunctionalDependencies` is speed but it's also possible to express many cases that require the extensions `TypeSynonymInstances`, `FlexibleInstances`, `MultiParamTypeClasses` and `UndecidableInstances` without them.
 
-There are very few cons as well but arguably insignificant. Here's a [detailed comparison](https://wiki.haskell.org/Functional_dependencies_vs._type_families).
+So when is it more convenient to use the former? You can find a more detailed comparison in the following articles:
+
+- https://wiki.haskell.org/Functional_dependencies_vs._type_families
+- https://gitlab.haskell.org/ghc/ghc/wikis/tf-vs-fd
+
+Special thanks to [Dmitrii Kovanikov](https://twitter.com/ChShersh) for a preliminar review!
