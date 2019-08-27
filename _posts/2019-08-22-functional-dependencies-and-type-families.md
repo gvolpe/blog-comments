@@ -214,4 +214,4 @@ So when is it more convenient to use the former? You can find a more detailed co
 - https://wiki.haskell.org/Functional_dependencies_vs._type_families
 - https://gitlab.haskell.org/ghc/ghc/wikis/tf-vs-fd
 
-Special thanks to [Dmitrii Kovanikov](https://twitter.com/ChShersh) for the draft review!
+Special thanks to [Dmitrii Kovanikov](https://twitter.com/ChShersh) for reviewing the first draft!
