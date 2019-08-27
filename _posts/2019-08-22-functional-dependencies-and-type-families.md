@@ -132,8 +132,10 @@ So here's how we can define our `HasLogger` class using Type Families instead:
 {% highlight haskell %}
 {-# LANGUAGE TypeFamilies #-}
 
+import Data.Kind (Type)
+
 class HasLogger ctx where
-  type LoggerF ctx :: * -> *
+  type LoggerF ctx :: Type -> Type
   loggerL :: Lens' ctx (Logger (LoggerF ctx))
 
 instance HasLogger (Ctx m) where
@@ -143,7 +145,7 @@ instance HasLogger (Ctx m) where
 
 Our class has once again a single parameter `ctx` and our functional dependency is now expressed as an *associated type* of the class (type family). It behaves like a function at the type level, so we can call `LoggerF` a type function.
 
-Notice how we explicitly define the kind of our type function to be `* -> *` (or `Type -> Type`). If we don't do it the default inferred kind will just be `*` (or `Type`).
+Notice how we explicitly define the kind of our type function to be `Type -> Type` (formerly `* -> *`). If we don't do it the default inferred kind will just be `Type` (formerly `*`).
 
 ##### Arithmetic example
 
@@ -151,7 +153,7 @@ In a similar way, we can define the `Add` class using Type Families:
 
 {% highlight haskell %}
 class Add a b where
-  type AddF a b :: *
+  type AddF a b :: Type
   add :: a -> b -> AddF a b
 
 instance Add Zero b where
@@ -178,7 +180,7 @@ the paper *Fun with type functions* linked above).
 
 {% highlight haskell %}
 class Mutation m where
-  type Ref m :: * -> *
+  type Ref m :: Type -> Type
   newRef   :: a -> m (Ref m a)
   readRef  :: Ref m a -> m a
   writeRef :: Ref m a -> a -> m ()
@@ -212,4 +214,4 @@ So when is it more convenient to use the former? You can find a more detailed co
 - https://wiki.haskell.org/Functional_dependencies_vs._type_families
 - https://gitlab.haskell.org/ghc/ghc/wikis/tf-vs-fd
 
-Special thanks to [Dmitrii Kovanikov](https://twitter.com/ChShersh) for a preliminar review!
+Special thanks to [Dmitrii Kovanikov](https://twitter.com/ChShersh) for the draft review!
