@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Functional Dependencies & Type Families"
-date:   2019-08-22 17:58:00
+date:   2019-08-27 09:12:00
 categories: haskell
 comments: true
 ---
