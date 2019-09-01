@@ -89,7 +89,7 @@ instance Add a b c => Add (Succ a) b (Succ c)
 The functional dependency is pretty clear: given `a` and `b` we can add them together and produce `c`. So `a` and
 `b` uniquely determine `c`.
 
-Notice how we don't even need to define `add`, specifying the types is enough! If it's still not clear, bare with me and let's perform type substitution step by step (feel free to skip this part):
+Notice how we don't even need to define `add`, specifying the types is enough! If it's still not clear, bear with me and let's perform type substitution step by step (feel free to skip this part):
 
 Given this instance, all we are saying is that:
 
