@@ -16,7 +16,7 @@ One of the fun applications I've worked on is [exchange-rates](https://github.co
 
 When defining dependencies using such effect is very common to do it using the [Has typeclass approach](https://www.fpcomplete.com/blog/2017/06/readert-design-pattern) (or how I prefer to call it, the *classy lenses Has pattern*) instead of passing the whole context / environment.
 
-Following this approach, I have defined a polymorphic `Ctx` record that represents the appliation context (or dependencies). It looks as follows:
+Following this approach, I have defined a polymorphic `Ctx` record that represents the application context (or dependencies). It looks as follows:
 
 {% highlight haskell %}
 data Ctx m = Ctx

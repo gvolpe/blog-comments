@@ -161,7 +161,7 @@ By making it polymorphic we get to choose our effect type and the dependencies n
 In this case it ended up being more practical testing using `IO` + `IORef`, given the `MonadMask` constraint on `m`. But for demonstration purposes I wrote another version of the test suite using a [stack of monad
 transformers](https://github.com/gvolpe/exchange-rates/blob/master/test/Rates/CachedForexRST.hs) that doesn't use `IO`.
 
-The testing approach I followed is to create different interpreters for the dependencies of the main service and then run some property tests on it. So we have an in-memory cache, a dummy forex client that always returns the same response and a logger that doesn't log.
+The testing approach I followed is to create different interpreters for the dependencies of the main service and then run some property tests on it. So we have an in-memory cache, a dummy Forex client that always returns the same response and a logger that doesn't log.
 
 Finally, you need to choose a test library. I went with [hedgehog](https://hackage.haskell.org/package/hedgehog). Its documentation is quite nice and it's easy to get started with. Eg: below is the definition of the rates test.
 
@@ -181,7 +181,7 @@ prop_get_rates cache = withTests 1000 $ property $ do
 {% endhighlight %}
 
 If we get a `Right rs` then we assert that the rate is equals to the one cached or the one returned by the forex
-client. If we get a `Left e` instead that means that the Api limit has been reached so we assert that the counter is greater or equals than the "requests per hour" value.
+client. If we get a `Left e` instead that means that the API limit has been reached so we assert that the counter is greater or equals than the "requests per hour" value.
 
 #### Web server
 

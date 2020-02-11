@@ -167,7 +167,7 @@ class benchmarks {
 }
 {% endhighlight %}
 
-And these are the results, running with 20 iterations, 5 warmup iterations, 1 fork and 1 thread:
+And these are the results, running with 20 iterations, 5 warm-up iterations, 1 fork and 1 thread:
 
 {% highlight bash %}
 sbt> jmh:run -i 20 -wi 5 -f1 -t1
