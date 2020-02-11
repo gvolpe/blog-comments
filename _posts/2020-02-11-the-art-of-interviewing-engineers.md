@@ -90,6 +90,4 @@ This is my top five. However, I believe a great hiring process should always be 
 
 How about you, Software Engineer? What other pain points have you stumbled upon while taking interviews?
 
-At last, I'll leave with another great resource on [how to conduct a good programming interview](http://www.lihaoyi.com/post/HowtoconductagoodProgrammingInterview.html).
-
-
+At last, I'll leave you with another great resource on [how to conduct a good programming interview](http://www.lihaoyi.com/post/HowtoconductagoodProgrammingInterview.html).
