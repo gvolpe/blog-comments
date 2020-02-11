@@ -1,4 +1,3 @@
-
 //
 // container
 .container {
@@ -214,6 +213,10 @@
   }
 }
 
+.post-content {
+  text-align: justify;
+}
+
 .post-list {
   .post {
     padding-bottom: $spacing-unit;
@@ -227,6 +230,7 @@
 
     .post-content {
       margin-top: .8em;
+      text-align: justify;
     }
   }
 }
