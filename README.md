@@ -2,8 +2,6 @@
 
 ## Principled Software Craftsmanship
 
----
-
 ### Run it locally
 
 ```
