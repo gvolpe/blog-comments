@@ -1,8 +1,8 @@
 # gvolpe's blog
 
-### Principled Software Craftsmanship
+## Principled Software Craftsmanship
 
-Made with https://github.com/nandomoreirame/zetsu
+---
 
 ### Run it locally
 
@@ -15,3 +15,5 @@ bundle exec jekyll serve
 ```
 bundle exec rake site:publish
 ```
+
+Made with https://github.com/nandomoreirame/zetsu
