@@ -1,4 +1,5 @@
 _site
+.nix-gems
 .sass-cache
 Gemfile.lock
 .rake_tasks~
