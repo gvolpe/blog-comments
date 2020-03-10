@@ -42,7 +42,7 @@ Giving feedback shows professionalism; asking for feedback shows humility.
 
 Your interview process might be *utterly broken* and far from perfect. So take this chance to get an outsider's opinion to improve it.
 
-A good combo is to ask for feedback in the same email where you are giving it. For example:
+A good convo is to ask for feedback in the same email where you are giving it. For example:
 
 > Dear candidate,
 >
