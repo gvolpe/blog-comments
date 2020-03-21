@@ -209,9 +209,9 @@ However, it doesn't matter. Ghcide will still work in our project; this is not a
 
 The following error is somewhat a nasty one:
 
-```
+{% highlight haskell %}
 Error ghcide: <command line>: can't load .so/.DLL
-```
+{% endhighlight %}
 
 If you stumble upon this one, make sure to update to the latest version. I had this error, which is reported [here](https://github.com/digital-asset/ghcide/issues/404), and got it fixed after updating Ghcide.
 
