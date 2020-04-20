@@ -88,7 +88,7 @@ class (Monad m, Applicative f) => Parallel f m | m -> f, f -> m where
 
 It defines a relationship between a `Monad` that can also be an `Applicative` with "parallely" behavior. That is, an `Applicative` instance that wouln't pass the monadic laws.
 
-The most common relationship is the one given by `Either` and `Validation`. These two types are isomorphic, with the difference being that `Validation` has an `Applicative` instance that accumulates errors, reason why it can not be a `Monad`.
+The most common relationship is the one given by `Either` and `Validation`. These two types are isomorphic, with the difference being that `Validation` has an `Applicative` instance that accumulate errors instead of short-circuiting on the first error.
 
 So we can represent this relationship via *natural transformation* in a `Parallel` instance:
 
