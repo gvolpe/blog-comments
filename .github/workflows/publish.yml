@@ -1,0 +1,19 @@
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: "actions/checkout@v2.1.0"
+      - uses: "cachix/install-nix-action@v9"
+      - uses: "cachix/cachix-action@v6"
+        with:
+          name: gvolpe-blog
+          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+      - run: "nix-shell --run \"bundle install && bundle exec rake site:publish\""
+name: Blog
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "_posts/**"
