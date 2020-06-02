@@ -216,7 +216,7 @@ in  GithubActions.Workflow::{
           , needs = None (List Text)
           , runs-on = GithubActions.types.RunsOn.`ubuntu-18.04`
           , steps = setup
-          , env = Some (toMap { GITHUB_TOKEN = "\${{ secrets.GITHUB_TOKEN }}" })
+          , env = Some (toMap { GITHUB_TOKEN = "\${\{ secrets.GITHUB_TOKEN }}" })
           }
         }
     }
