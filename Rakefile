@@ -26,6 +26,8 @@ namespace :site do
       pwd = Dir.pwd
       Dir.chdir tmp
 
+      system "git config user.email 'volpegabriel@gmail.com'"
+      system "git config user.name 'Gabriel Volpe'"
       system "git init"
       system "git add ."
       message = "Site updated at #{Time.now.utc}"

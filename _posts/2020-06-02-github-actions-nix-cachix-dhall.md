@@ -6,7 +6,7 @@ categories: ci, nix, cachix, cache, haskell, scala, nix-shell, dhall
 comments: true
 ---
 
-The more I learn about [Nix](https://nixos.org/nix/) - a purely functional package manager - the more I am convinced this is the way forward. Even if there is still room for big improvements.
+The more I learn about [Nix](https://nixos.org/nix/) - a purely functional package manager - the more I am convinced this is the way forward. Even if there's still room for big improvements.
 
 Today I'd like to share with y'all what I've been up-to lately. Though, you could imagine I've been *Nixifying* more than one project ;)
 
