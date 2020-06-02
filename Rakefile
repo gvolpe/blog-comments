@@ -30,7 +30,7 @@ namespace :site do
       system "git add ."
       message = "Site updated at #{Time.now.utc}"
       system "git commit -m #{message.inspect}"
-      system "git remote add origin git@github.com:#{GITHUB_REPONAME}.git"
+      system "git remote add origin https://gvolpe:#{ENV['BLOG_TOKEN']}@github.com/#{GITHUB_REPONAME}.git"
       system "git push origin master:refs/heads/#{GITHUB_REPO_BRANCH} --force"
 
       Dir.chdir pwd
