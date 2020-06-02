@@ -1,0 +1,18 @@
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: "actions/checkout@v2.1.0"
+      - uses: "cachix/install-nix-action@v9"
+      - uses: "cachix/cachix-action@v6"
+        with:
+          name: gvolpe-blog
+          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+      - run: "nix-shell --run \"bundle exec jekyll build\""
+name: Blog
+on:
+  pull_request: {}
+  push:
+    branches:
+      - master

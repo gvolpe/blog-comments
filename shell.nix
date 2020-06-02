@@ -1,14 +1,18 @@
 let
-  pkgs = import (fetchTarball "https://github.com/NixOS/nixpkgs-channels/archive/1fe82110feb.tar.gz") {};
-  stdenv = pkgs.stdenv;
+  nixpkgs = fetchTarball {
+    name   = "NixOS-unstable-13-05-2020";
+    url    = "https://github.com/NixOS/nixpkgs-channels/archive/6bcb1dec8ea.tar.gz";
+    sha256 = "04x750byjr397d3mfwkl09b2cz7z71fcykhvn8ypxrck8w7kdi1h";
+  };
+  pkgs = import nixpkgs {};
 
   ruby = pkgs.ruby_2_7;
   rubygems = (pkgs.rubygems.override { ruby = ruby; });
 
-in stdenv.mkDerivation rec {
-  name = "blog";
+in pkgs.mkShell {
   buildInputs = [
-    ruby
+    pkgs.haskellPackages.dhall-json # v1.6.2
+    ruby # v2.7.1p83
   ];
 
   shellHook = ''
@@ -18,5 +22,4 @@ in stdenv.mkDerivation rec {
     export PATH=$GEM_HOME/bin:$PATH
     bundle install
   '';
-
 }
