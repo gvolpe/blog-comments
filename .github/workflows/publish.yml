@@ -10,13 +10,12 @@ jobs:
           name: gvolpe-blog
           signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
       - run: "nix-shell --run \"bundle install && bundle exec rake site:generate\""
-
-      - name: Deploy 🚀
+      - name: "Deploy 🚀"
         uses: "JamesIves/github-pages-deploy-action@3.5.3"
         with:
-          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          ACCESS_TOKEN: "${{ secrets.ACCESS_TOKEN }}"
           BRANCH: gh-pages
-          FOLDER: _site
+          FOLDER: "_site"
 name: Blog
 on:
   push:
