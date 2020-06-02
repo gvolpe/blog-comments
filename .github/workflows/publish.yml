@@ -12,7 +12,7 @@ jobs:
       - run: "nix-shell --run \"bundle install && bundle exec rake site:generate\""
 
       - name: Deploy 🚀
-        uses: "JamesIves/github-pages-deploy-action@releases/v3.5.3"
+        uses: "JamesIves/github-pages-deploy-action@3.5.3"
         with:
           ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
           BRANCH: gh-pages
