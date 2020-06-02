@@ -6,7 +6,7 @@ let setup =
       , GithubActions.steps.cachix/install-nix
       , GithubActions.steps.cachix/cachix { cache-name = "gvolpe-blog" }
       , GithubActions.steps.run
-          { run = "nix-shell --run \"bundle exec jekyll build\"" }
+          { run = "nix-shell --run \"bundle install && bundle exec jekyll build\"" }
       ]
 
 in  GithubActions.Workflow::{

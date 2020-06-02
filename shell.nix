@@ -20,6 +20,5 @@ in pkgs.mkShell {
     export GEM_HOME=$PWD/.nix-gems
     export GEM_PATH=$GEM_HOME
     export PATH=$GEM_HOME/bin:$PATH
-    bundle install
   '';
 }
