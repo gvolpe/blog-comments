@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 02 Jun 2020 23:18:50 +0000</pubDate>
-    <lastBuildDate>Tue, 02 Jun 2020 23:18:50 +0000</lastBuildDate>
+    <pubDate>Wed, 03 Jun 2020 09:13:12 +0000</pubDate>
+    <lastBuildDate>Wed, 03 Jun 2020 09:13:12 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -133,7 +133,7 @@ Command &lt;span class=&quot;s1&quot;&gt;&amp;#39;redis-cli&amp;#39;&lt;/span&gt
 
 &lt;p&gt;However, if we try to build our &lt;code&gt;shell.nix&lt;/code&gt; file, this is what happens:&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;nix-build shell.nix
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix-build shell.nix
 these derivations will be built:
   /nix/store/7lyp4vfrrsn7rx3rwy31va2l10g4xkxq-nix-shell.drv
 building &lt;span class=&quot;s1&quot;&gt;&amp;#39;/nix/store/7lyp4vfrrsn7rx3rwy31va2l10g4xkxq-nix-shell.drv&amp;#39;&lt;/span&gt;...
