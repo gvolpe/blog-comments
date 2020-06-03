@@ -137,7 +137,7 @@ $ cachix use <name>
 However, if we try to build our `shell.nix` file, this is what happens:
 
 {% highlight bash %}
-nix-build shell.nix
+$ nix-build shell.nix
 these derivations will be built:
   /nix/store/7lyp4vfrrsn7rx3rwy31va2l10g4xkxq-nix-shell.drv
 building '/nix/store/7lyp4vfrrsn7rx3rwy31va2l10g4xkxq-nix-shell.drv'...
