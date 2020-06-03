@@ -1,6 +1,5 @@
 jobs:
   publish:
-    name: publish
     runs-on: ubuntu-18.04
     steps:
       - uses: "actions/checkout@v2.1.0"
@@ -9,7 +8,8 @@ jobs:
         with:
           name: gvolpe-blog
           signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
-      - run: "nix-shell --run \"bundle install && bundle exec rake site:generate\""
+      - name: "Generating site 🚧"
+        run: "nix-shell --run \"bundle install && bundle exec rake site:generate\""
       - name: "Deploy 🚀"
         uses: "JamesIves/github-pages-deploy-action@3.5.3"
         with:
