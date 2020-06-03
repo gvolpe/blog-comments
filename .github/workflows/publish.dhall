@@ -25,7 +25,7 @@ in  GithubActions.Workflow::{
     , on = GithubActions.On::{
       , push = Some GithubActions.Push::{
         , branches = Some [ "master" ]
-        , paths = Some [ "_posts/**" ]
+        , paths = Some [ "_posts/**", "images/**" ]
         }
       }
     , jobs = toMap { publish = publishJob }
