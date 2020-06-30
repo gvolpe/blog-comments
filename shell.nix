@@ -13,6 +13,7 @@ in pkgs.mkShell {
   buildInputs = [
     pkgs.haskellPackages.dhall-json # v1.6.2
     ruby # v2.7.1p83
+    pkgs.python2
   ];
 
   shellHook = ''

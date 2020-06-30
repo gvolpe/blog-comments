@@ -1,0 +1,90 @@
+<!DOCTYPE html> <html lang="en-uk"> <head> <meta charset="utf-8"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title> Gnome 3 on NixOS &bull; gvolpe's blog </title> <meta name="description" content="NixOS can be configured to run any desktop environment you want and Gnome 3 is not an exception. However, it comes with some caveats so keep reading if you a..."> <link rel="stylesheet" href="/blog/css/main.css"> <link rel="canonical" href="https://gvolpe.github.io/blog/gnome3-on-nixos/"> <link rel="alternate" type="application/rss+xml" title="gvolpe's blog" href="https://gvolpe.github.io/blog/feed.xml" /> <!-- Global site tag (gtag.js) - Google Analytics --> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142604198-1"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-142604198-1'); </script> <!-- -<script type="text/javascript"> -var _gaq = _gaq || []; -_gaq.push(['_setAccount', 'UA-142604198-1']); -_gaq.push(['_trackPageview']); - -(function() { - var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true; - ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js'; - var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s); -})(); -</script> --> </head> <body class="single"> <main class="main"> <header class="header"> <div class="overlay"> <div class="container"> <h1 class="title"> <a href="/blog/">gvolpe's blog</a> </h1> <nav class="navbar"> <a href="#" class="menu-icon"> <span></span> <span></span> <span></span> </a> <ul class="nav"> <li><a href="https://gvolpe.github.io" target="_blank">Website</a></li> </ul> </nav> </div> </div> </header> <article class="post container card"> <header class="post-header"> <h1 class="post-title">Gnome 3 on NixOS</h1> <span class="post-meta"> <time class="post-date" datetime="2020-07-01">Jul 1, 2020</time> <span class="post-author">by Gabriel Volpe</span> </span> </header> <div class="post-content"> <p><a href="https://nixos.org/">NixOS</a> can be configured to run any desktop environment you want and <a href="https://www.gnome.org/gnome-3/">Gnome 3</a> is not an exception. However, it comes with some caveats so keep reading if you are interested in making this duo work seamlessly.</p> <p>Users who enjoy a graphical environment normally like to tweak it with their own preferences as well. E.g. installing new <a href="https://extensions.gnome.org/">extensions</a>, changing the background image, changing the dock, etc. These are some of the tasks that <a href="https://wiki.gnome.org/Apps/Tweaks">Gnome Tweaks</a> makes possible in Gnome 3.</p> <p>Except, if you are in NixOS, I’m guessing you’d like to have all these tweaks declared in a configuration file so the next time you rebuild your system they are preserved, am I right?</p> <h3 id="nixos-configuration">NixOS configuration</h3> <p>First of all, we want to enable Gnome 3 as our default desktop manager in our <code>/etc/nixos/configuration.nix</code> file.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="ss">services =</span> <span class="p">{</span>
+  <span class="ss">xserver =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">layout =</span> <span class="s2">&quot;us&quot;</span><span class="p">;</span>
+    displayManager<span class="o">.</span>gdm<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    displayManager<span class="o">.</span>gdm<span class="o">.</span><span class="ss">wayland =</span> <span class="no">false</span><span class="p">;</span>
+    desktopManager<span class="o">.</span>gnome3<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  dbus<span class="o">.</span><span class="ss">packages =</span> <span class="p">[</span> pkgs<span class="o">.</span>gnome3<span class="o">.</span>dconf <span class="p">];</span>
+  udev<span class="o">.</span><span class="ss">packages =</span> <span class="p">[</span> pkgs<span class="o">.</span>gnome3<span class="o">.</span>gnome-settings-daemon <span class="p">];</span>
+<span class="p">};</span></code></pre></div> <p><a href="https://wayland.freedesktop.org/">Wayland</a> is a modern replacement for <a href="https://www.x.org/wiki/">X</a>. I tried it out for a while and it worked pretty well but unfortunately some functionality like screen-sharing is broken, reason why I have it disabled.</p> <p>Additionally, you need to <code>dconf</code> and <code>gnome-settings-daemon</code> running as a service to configure Gnome 3. This is all we need at the system level.</p> <h3 id="home-manager">Home Manager</h3> <p><a href="https://github.com/rycee/home-manager">Home Manager</a> is a great tool that manages all the software you want to install at the user level and all the configuration that comes with it. For example, Vim, Fish shell, Tmux, etc.</p> <p>It can also manage Gnome extensions for us. Here’s an example:</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> config<span class="p">,</span> pkgs<span class="p">,</span> stdenv<span class="p">,</span> lib<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="p">{</span>
+  programs<span class="o">.</span>home-manager<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+
+  home<span class="o">.</span><span class="ss">packages =</span> <span class="k">with</span> pkgs<span class="p">;</span> <span class="p">[</span>
+    <span class="c1"># gnome3 apps</span>
+    gnome3<span class="o">.</span>eog    <span class="c1"># image viewer</span>
+    gnome3<span class="o">.</span>evince <span class="c1"># pdf reader</span>
+
+    <span class="c1"># desktop look &amp; feel</span>
+    gnome3<span class="o">.</span>gnome-tweak-tool
+
+    <span class="c1"># extensions</span>
+    gnomeExtensions<span class="o">.</span>appindicator
+    gnomeExtensions<span class="o">.</span>dash-to-dock
+  <span class="p">];</span></code></pre></div> <p>After running <code>home-manager switch</code>, if the build succeeded, you will see these extensions installed in Gnome Tweaks. Now we can go ahead, turn them on and configure each extension as we like. Next day we install another extension, say <code>gnomeExtensions.battery-status</code>, and again run <code>home-manager switch</code>. You will find out that all the three extensions are now installed but that you have lost the changes made to the configuration of the extensions!</p> <p>As I previously mentioned, Gnome 3’s configuration is managed by <code>dconf</code>. You can get a description of the configuration by running the following command:</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>dconf dump / &gt; dconf.settings</code></pre></div> <p>It will have content similar to the one below.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span> org/gnome/desktop/peripherals/mouse <span class="o">]</span>
+natural-scroll<span class="o">=</span><span class="nb">false</span>
+<span class="nv">speed</span><span class="o">=</span>-0.5
+
+<span class="o">[</span> org/gnome/desktop/peripherals/touchpad <span class="o">]</span>
+tap-to-click<span class="o">=</span><span class="nb">false</span>
+two-finger-scrolling-enabled<span class="o">=</span><span class="nb">true</span>
+
+<span class="o">[</span>org/gnome/desktop/input-sources<span class="o">]</span>
+<span class="nv">current</span><span class="o">=</span>uint32 0
+<span class="nv">sources</span><span class="o">=[(</span><span class="s1">&#39;xkb&#39;</span>, <span class="s1">&#39;us&#39;</span><span class="o">)]</span>
+xkb-options<span class="o">=[</span><span class="s1">&#39; terminate:ctrl_alt_bksp &#39;</span>, <span class="s1">&#39; lv3:ralt_switch &#39;</span>, <span class="s1">&#39; caps:ctrl_modifier &#39;</span><span class="o">]</span>
+
+<span class="o">[</span> org/gnome/desktop/screensaver <span class="o">]</span>
+picture-uri<span class="o">=</span><span class="s1">&#39; file:///home/gvolpe/Pictures/nixos.png &#39;</span></code></pre></div> <p>Home Manager provides a <a href="https://rycee.gitlab.io/home-manager/options.html#opt-dconf.settings">dconf.settings</a> option we can use to configure <code>dconf</code>. However, we need to write it in Nix instead. The configuration above will look as follows:</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> lib<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="k">let</span>
+  <span class="ss">mkTuple =</span> lib<span class="o">.</span>hm<span class="o">.</span>gvariant<span class="o">.</span>mkTuple<span class="p">;</span>
+<span class="k">in</span>
+<span class="p">{</span>
+  dconf<span class="o">.</span><span class="ss">settings =</span> <span class="p">{</span>
+    <span class="s2">&quot;org/gnome/desktop/peripherals/mouse&quot;</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s2">&quot;natural-scroll&quot;</span> <span class="o">=</span> <span class="no">false</span><span class="p">;</span>
+      <span class="s2">&quot;speed&quot;</span> <span class="o">=</span> <span class="err">-</span><span class="mi">0</span><span class="o">.</span><span class="mi">5</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="s2">&quot;org/gnome/desktop/peripherals/touchpad&quot;</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s2">&quot;tap-to-click&quot;</span> <span class="o">=</span> <span class="no">false</span><span class="p">;</span>
+      <span class="s2">&quot;two-finger-scrolling-enabled&quot;</span> <span class="o">=</span> <span class="no">true</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="s2">&quot;org/gnome/desktop/input-sources&quot;</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s2">&quot;current&quot;</span> <span class="o">=</span> <span class="s2">&quot;uint32 0&quot;</span><span class="p">;</span>
+      <span class="s2">&quot;sources&quot;</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span>mkTuple <span class="p">[</span> <span class="s2">&quot;xkb&quot;</span> <span class="s2">&quot;us&quot;</span> <span class="p">])</span> <span class="p">];</span>
+      <span class="s2">&quot;xkb-options&quot;</span> <span class="o">=</span> <span class="p">[</span> <span class="s2">&quot;terminate:ctrl_alt_bksp&quot;</span> <span class="s2">&quot;lv3:ralt_switch&quot;</span> <span class="s2">&quot;caps:ctrl_modifier&quot;</span> <span class="p">];</span>
+    <span class="p">};</span>
+
+    <span class="s2">&quot;org/gnome/desktop/screensaver&quot;</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s2">&quot;picture-uri&quot;</span> <span class="o">=</span> <span class="s2">&quot;file:///home/gvolpe/Pictures/nixos.png&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>As we can see, it is a bit tedious to write all of this manually.</p> <h3 id="dconf2nix">dconf2nix</h3> <p>So I recently made available a tool called <a href="https://github.com/gvolpe/dconf2nix">dconf2nix</a>, which automates this conversion. It is written in a few lines of Haskell, thanks to the expressiveness of parser combinators.</p> <p>Once you get the dump of the <code>dconf</code> configuration, you’re just a command away from getting it in the Nix format as expected by Home Manager.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>dconf2nix -i dconf.settings -o dconf.nix</code></pre></div> <p>To keep the modularity, it is a good practice to keep the <code>dconf.nix</code> as is, and import it in your <code>home.nix</code> file instead.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> config<span class="p">,</span> pkgs<span class="p">,</span> stdenv<span class="p">,</span> lib<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="p">{</span>
+  programs<span class="o">.</span>home-manager<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+
+  <span class="ss">imports =</span> <span class="p">[</span> <span class="o">.</span><span class="l">/dconf.nix</span> <span class="p">];</span>
+<span class="p">}</span></code></pre></div> <p>And that’s it! Next time you make changes in the UI, make sure to also update the <code>dconf.nix</code> file. For instance, you may want to enable some extensions by default.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="s2">&quot;org/gnome/shell&quot;</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="ss">command-history =</span> <span class="p">[</span> <span class="s2">&quot;gnome-tweaks&quot;</span> <span class="p">];</span>
+  <span class="ss">enabled-extensions =</span> <span class="p">[</span>
+    <span class="s2">&quot;horizontal-workspaces@gnome-shell-extensions.gcampax.github.com&quot;</span>
+    <span class="s2">&quot;dash-to-dock@micxgx.gmail.com&quot;</span>
+  <span class="p">];</span>
+  <span class="ss">favorite-apps =</span> <span class="p">[</span>
+    <span class="s2">&quot;chromium-browser.desktop&quot;</span>
+    <span class="s2">&quot;spotify.desktop&quot;</span>
+    <span class="s2">&quot;org.gnome.tweaks.desktop&quot;</span>
+  <span class="p">];</span>
+<span class="p">};</span></code></pre></div> <p>You can have a look at my <a href="https://github.com/gvolpe/nix-config">NixOS configuration</a>, where I have also configured some custom Gnome extensions and a bunch of other stuff.</p> <p>Have fun with Nix! And if you happen to find any issue with <a href="https://github.com/gvolpe/dconf2nix">dconf2nix</a>, please report it, as it is quite new and there might be some missing edge cases.</p> <p>Cheers, Gabriel.</p> <aside class="share"> <span>Share this: </span> <a href="http://twitter.com/share?text=Gnome 3 on NixOS&amp;url=https://gvolpe.github.io/gnome3-on-nixos/&amp;hashtags=scala,haskell,fp&amp;via=volpegabriel87" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;"> <i class="fa fa-twitter-square"></i> </a> </aside> <hr> <aside id="comments" class="disqus"> <h2 class="txt-center">Comments</h2> <div id="disqus_thread"></div> <script> function hashCode(str) { return Array.from(str) .reduce((s, c) => Math.imul(31, s) + c.charCodeAt(0) | 0, 0) } var disqus_config = function () { this.page.url = 'https://gvolpe.github.io/blog/gnome3-on-nixos'; this.page.identifier = hashCode('/gnome3-on-nixos'); }; (function() { var d = document, s = d.createElement('script'); s.src = 'https://gvolpe-blog.disqus.com/embed.js'; s.setAttribute('data-timestamp', +new Date()); (d.head || d.body).appendChild(s); })(); </script> <noscript> Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a> </noscript> </aside> </div> </article> <footer class="footer t-center"> <div class="container"> <div class="social-icons"> <ul class="text-left"> <li><a href="https://twitter.com/volpegabriel87" target="_blank"><i class="fa fa-twitter"></i></a></li> </ul> </div> <small>&copy; 2020 All rights reserved. Made with <a href="http://jekyllrb.com" target="_blank">Jekyll</a> and <i class="icon icon-heart"></i></small> <small>by <a href="http://nandomoreira.me" target="_blank">nandomoreira.me</a></small> </div> </footer> </main> </body> </html></body></html>
+<!--
+// # Zetsu Jekyll theme - https://github.com/nandomoreriame/zetsu/
+// by nandomoreira.me
+-->
