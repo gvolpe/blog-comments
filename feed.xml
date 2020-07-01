@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 30 Jun 2020 20:55:37 +0000</pubDate>
-    <lastBuildDate>Tue, 30 Jun 2020 20:55:37 +0000</lastBuildDate>
+    <pubDate>Wed, 01 Jul 2020 07:45:27 +0000</pubDate>
+    <lastBuildDate>Wed, 01 Jul 2020 07:45:27 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -36,7 +36,7 @@
 
 &lt;p&gt;&lt;a href=&quot;https://wayland.freedesktop.org/&quot;&gt;Wayland&lt;/a&gt; is a modern replacement for &lt;a href=&quot;https://www.x.org/wiki/&quot;&gt;X&lt;/a&gt;. I tried it out for a while and it worked pretty well but unfortunately some functionality like screen-sharing is broken, reason why I have it disabled.&lt;/p&gt;
 
-&lt;p&gt;Additionally, you need to &lt;code&gt;dconf&lt;/code&gt; and &lt;code&gt;gnome-settings-daemon&lt;/code&gt; running as a service to configure Gnome 3. This is all we need at the system level.&lt;/p&gt;
+&lt;p&gt;Additionally, you need &lt;code&gt;dconf&lt;/code&gt; and &lt;code&gt;gnome-settings-daemon&lt;/code&gt; running as a service to configure Gnome 3. This is all we need at the system level.&lt;/p&gt;
 
 &lt;h3 id=&quot;home-manager&quot;&gt;Home Manager&lt;/h3&gt;
 
