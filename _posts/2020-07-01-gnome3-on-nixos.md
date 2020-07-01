@@ -33,7 +33,7 @@ services = {
 
 [Wayland](https://wayland.freedesktop.org/) is a modern replacement for [X](https://www.x.org/wiki/). I tried it out for a while and it worked pretty well but unfortunately some functionality like screen-sharing is broken, reason why I have it disabled.
 
-Additionally, you need to `dconf` and `gnome-settings-daemon` running as a service to configure Gnome 3. This is all we need at the system level.
+Additionally, you need `dconf` and `gnome-settings-daemon` running as a service to configure Gnome 3. This is all we need at the system level.
 
 ### Home Manager
 
