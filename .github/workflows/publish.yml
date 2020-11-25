@@ -4,6 +4,7 @@ on:
     branches:
       - master
     paths:
+      - ".github/workflows/publish.yml"
       - "_posts/**"
       - "images/**"
 
@@ -17,10 +18,12 @@ jobs:
         with:
           name: gvolpe-blog
           signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+
       - name: "Generating site 🚧"
         run: nix-shell --run "bundle install && bundle exec rake site:generate"
+
       - name: "Deploy 🚀"
-        uses: JamesIves/github-pages-deploy-action@3.5.3
+        uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           ACCESS_TOKEN: "${{ secrets.ACCESS_TOKEN }}"
           BRANCH: gh-pages
