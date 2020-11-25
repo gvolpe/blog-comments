@@ -1,0 +1,265 @@
+<!DOCTYPE html> <html lang="en-uk"> <head> <meta charset="utf-8"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title> XMonad + Polybar on NixOS &bull; gvolpe's blog </title> <meta name="description" content="Table of Contents"> <link rel="stylesheet" href="/blog/css/main.css"> <link rel="canonical" href="https://gvolpe.github.io/blog/xmonad-polybar-nixos/"> <link rel="alternate" type="application/rss+xml" title="gvolpe's blog" href="https://gvolpe.github.io/blog/feed.xml" /> <!-- Global site tag (gtag.js) - Google Analytics --> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142604198-1"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-142604198-1'); </script> <!-- -<script type="text/javascript"> -var _gaq = _gaq || []; -_gaq.push(['_setAccount', 'UA-142604198-1']); -_gaq.push(['_trackPageview']); - -(function() { - var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true; - ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js'; - var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s); -})(); -</script> --> </head> <body class="single"> <main class="main"> <header class="header"> <div class="overlay"> <div class="container"> <h1 class="title"> <a href="/blog/">gvolpe's blog</a> </h1> <nav class="navbar"> <a href="#" class="menu-icon"> <span></span> <span></span> <span></span> </a> <ul class="nav"> <li><a href="https://gvolpe.github.io" target="_blank">Website</a></li> </ul> </nav> </div> </div> </header> <article class="post container card"> <header class="post-header"> <h1 class="post-title">XMonad + Polybar on NixOS</h1> <span class="post-meta"> <time class="post-date" datetime="2020-11-25">Nov 25, 2020</time> <span class="post-author">by Gabriel Volpe</span> </span> </header> <div class="post-content"> <p><strong>Table of Contents</strong></p> <ul id="markdown-toc"> <li><a href="#introduction" id="markdown-toc-introduction">Introduction</a></li> <li><a href="#xmonad" id="markdown-toc-xmonad">XMonad</a> <ul> <li><a href="#configuration" id="markdown-toc-configuration">Configuration</a> <ul> <li><a href="#system-level" id="markdown-toc-system-level">System level</a></li> <li><a href="#user-level" id="markdown-toc-user-level">User level</a></li> </ul> </li> </ul> </li> <li><a href="#rofi" id="markdown-toc-rofi">Rofi</a></li> <li><a href="#polybar" id="markdown-toc-polybar">Polybar</a></li> <li><a href="#dunst" id="markdown-toc-dunst">Dunst</a></li> <li><a href="#betterlockscreen" id="markdown-toc-betterlockscreen">Betterlockscreen</a></li> <li><a href="#picom" id="markdown-toc-picom">Picom</a></li> <li><a href="#system-tray" id="markdown-toc-system-tray">System tray</a></li> <li><a href="#udiskie" id="markdown-toc-udiskie">Udiskie</a></li> <li><a href="#conclusion" id="markdown-toc-conclusion">Conclusion</a></li> </ul> <h3 id="introduction">Introduction</h3> <p>I’ve been a <a href="https://www.gnome.org/">Gnome</a> user for a long time and I have never cared about using a <a href="https://en.wikipedia.org/wiki/Window_manager">Window Manager</a> ever before but I recently switched to using <a href="https://xmonad.org/">XMonad</a> full-time. Why? For a couple of reasons.</p> <p>One of the reasons is that I’ve been wanting to try a lightweight window manager for a while. However, the main reason is that Gnome <em>leaks memory</em>, unfortunately, and it seems to be an issue that’s been around <a href="https://bugs.launchpad.net/gnome-shell/+bug/1672297">forever</a>. Although it has been announced as allegedly solved, I have been experiencing a similar issue in Gnome 3.36 on <a href="https://nixos.org/">NixOS</a>.</p> <p>After a fresh start, it consumed ~1.2% of my 32GB (about 390MB) but right after 24 hours (only one day of uptime!) I found out it was consuming ~50% (about 16GB!), which is unacceptable. I have screenshots of the memory consumption but I decided to leave them out of this post since it is not about bashing Gnome.</p> <p>I know writing solid software is hard and memory leaks are one of the toughest problems to solve in Software Engineering so I only want to thank Gnome for all the good years and wish only the best. My mother still uses Gnome 3 with Ubuntu, FWIW :)</p> <p>The good news is that this incident has pushed me into giving XMonad a serious try, and oh boy, there’s no way back! It’s like that day I discovered functional programming. How could I ever write imperative code again?</p> <p>NOTE: If you are already familiar with all of this and are only interested in the configuration files, you can find them on my <a href="https://github.com/gvolpe/nix-config">Github</a>.</p> <h3 id="xmonad">XMonad</h3> <p>XMonad is a dynamically tiling <a href="https://en.wikipedia.org/wiki/X_Window_System">X11</a> window manager that is written and configured in <a href="https://www.haskell.org/">Haskell</a>. There are many tutorials, blog posts, videos and documentation on the Internet about it so I’m only going to focus on getting XMonad properly set up in NixOS.</p> <p>This is what it looks like at the moment on my machine (it’s always evolving).</p> <p><img src="../images/xmonad.jpg" alt="xmonad" /></p> <p>That’s not only XMonad but also <a href="https://polybar.github.io/">Polybar</a> and <a href="https://github.com/yshui/picom">Picom</a> complementing it, a status bar and a compositor, respectively.</p> <p>If you, like me, come from a popular desktop manager such as Gnome or KDE, you might be surprised finding out all the things they do! Since XMonad is merely a window manager, you won’t have out-of-box support for a status bar, notifications, screen locker, etc. This follows the Unix philosophy where we are free to choose how every piece of our software is put together.</p> <p>In the next sections, we will look into every piece of software I have configured to get the full desktop manager experience.</p> <h4 id="configuration">Configuration</h4> <p>I configure all my software and user services via <a href="https://github.com/nix-community/home-manager">Home Manager</a>, an amazing Nix tool. It’s great on NixOS but it also works in other Linux distros, if you want to give it a shot.</p> <p>However, some programs and services need to be declared at the system level, which is also the case for XMonad. So we will start with it.</p> <h5 id="system-level">System level</h5> <p>I’ve defined the XMonad system configuration under <code>/etc/nixos/wm/xmonad.nix</code>, and I’ve done pretty much the same with my Gnome configuration, so it would be easy to switch between both.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> config<span class="p">,</span> lib<span class="p">,</span> pkgs<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="p">{</span>
+  <span class="ss">services =</span> <span class="p">{</span>
+    gnome3<span class="o">.</span>gnome-keyring<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    upower<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+
+    <span class="ss">dbus =</span> <span class="p">{</span>
+      <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="ss">socketActivated =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="ss">packages =</span> <span class="p">[</span> pkgs<span class="o">.</span>gnome3<span class="o">.</span>dconf <span class="p">];</span>
+    <span class="p">};</span>
+
+    <span class="ss">xserver =</span> <span class="p">{</span>
+      <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="ss">startDbusSession =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="ss">layout =</span> <span class="s2">&quot;us&quot;</span><span class="p">;</span>
+
+      <span class="ss">libinput =</span> <span class="p">{</span>
+        <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+        <span class="ss">disableWhileTyping =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="p">};</span>
+
+      displayManager<span class="o">.</span><span class="ss">defaultSession =</span> <span class="s2">&quot;none+xmonad&quot;</span><span class="p">;</span>
+
+      windowManager<span class="o">.</span><span class="ss">xmonad =</span> <span class="p">{</span>
+        <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+        <span class="ss">enableContribAndExtras =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="p">};</span>
+
+      <span class="ss">xkbOptions =</span> <span class="s2">&quot;caps:ctrl_modifier&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+
+  hardware<span class="o">.</span>bluetooth<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+  services<span class="o">.</span>blueman<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+
+  systemd<span class="o">.</span>services<span class="o">.</span>upower<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div> <p>There is a lot declared in this file that is completely unrelated to it but that complements it.</p> <ul> <li><code>gnome3.gnome-keyring</code>: needed to store credentials such as WiFi passwords, so we don’t need to enter it every time we log in.</li> <li><code>upower</code>: get system’s power information such as CPU usage. We also need the <code>systemd</code> daemon.</li> <li><code>dbus</code>: short for Desktop Bus, allows concurrent communication between multiple processes and it’s kind of ubiquitous these days.</li> <li><code>bluetooth</code>: enable bluetooth.</li> <li><code>blueman</code>: enable the bluetooth manager service.</li> </ul> <p>For what it’s worth, all of these are enabled by default when using either Gnome or KDE.</p> <p>The rest of the configuration is part of <code>xserver</code>, in which case, we need to highlight the default session of our display manager being set to <code>none+xmonad</code> and enabling XMonad as our window manager. The <code>none</code> part means we don’t want any Desktop Environment (DE), which defaults to <code>xfce</code> in NixOS, if I’m not mistaken.</p> <p>This file is then imported at <code>/etc/nixos/configuration.nix</code>, which is the main NixOS configuration file.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">imports =</span>
+    <span class="p">[</span>
+      <span class="c1"># Include the results of the hardware scan.</span>
+      <span class="o">.</span><span class="l">/hardware-configuration.nix</span>
+      <span class="c1"># Machine-specific configuration</span>
+      <span class="o">.</span><span class="l">/machine/current.nix</span>
+      <span class="c1"># Window manager</span>
+      <span class="o">.</span><span class="l">/wm/xmonad.nix</span>
+    <span class="p">];</span>
+<span class="p">}</span></code></pre></div> <p>A regular <code>nixos-rebuild switch</code> followed by a <code>reboot</code> are needed for all these changes to become active.</p> <h5 id="user-level">User level</h5> <p>User-level configuration includes all the dotfiles that usually live under <code>$HOME/.config</code> as well as user-level services managed via <code>systemctl</code>. This is the perfect fit for Home Manager (HM). So here’s how I set the required Haskell configuration for XMonad, along with other options, declared under <code>~/.config/nixpkgs/programs/xmonad/default.nix</code>.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">xsession =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+
+    <span class="ss">initExtra =</span> polybarOpts<span class="p">;</span>
+
+    windowManager<span class="o">.</span><span class="ss">xmonad =</span> <span class="p">{</span>
+      <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="ss">enableContribAndExtras =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="ss">extraPackages =</span> hp<span class="p">:</span> <span class="p">[</span>
+        hp<span class="o">.</span>dbus
+        hp<span class="o">.</span>monad-logger
+        hp<span class="o">.</span>xmonad-contrib
+      <span class="p">];</span>
+      <span class="ss">config =</span> <span class="o">.</span><span class="l">/config.hs</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>We will later see how <code>polybarOpts</code> is defined and whether that’s needed for you or not. This file is then imported by <code>~/.config/nixpkgs/home.nix</code>, in the same way we do it at the system level.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> config<span class="p">,</span> lib<span class="p">,</span> pkgs<span class="p">,</span> stdenv<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="p">{</span>
+  programs<span class="o">.</span>home-manager<span class="o">.</span><span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+
+  <span class="ss">imports =</span> <span class="p">[</span>
+    <span class="o">.</span><span class="l">/programs/xmonad/default.nix</span>
+  <span class="p">];</span>
+<span class="p">}</span></code></pre></div> <p>In general, all the programs and user-level services are imported in this way, to keep the modularity.</p> <h3 id="rofi">Rofi</h3> <p>Right after XMonad is installed, having an application launcher (recommended) might be very convenient to have. Otherwise, the only way to run applications will be directly from a terminal, which is not the nicest experience for GUI programs. This is where tools such as <a href="https://tools.suckless.org/dmenu/">dmenu</a> and <a href="https://github.com/davatorium/rofi">Rofi</a> come into place.</p> <p>The former has been around for a long time and it’s a good default but after trying out both, I’ve settled for Rofi, which is a modern replacement for <code>dmenu</code>. You can customize its look and feel as you please and there are a few themes to select from if you prefer something already made.</p> <p>Here’s how it looks on my machine.</p> <p><img src="../images/rofi.png" alt="rofi" /></p> <p>I use a customized version of the <a href="https://github.com/davatorium/rofi/blob/next/themes/arthur.rasi">Arthur theme</a>. Here’s how to import it using Home Manager.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> pkgs<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="p">{</span>
+  programs<span class="o">.</span><span class="ss">rofi =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">terminal =</span> <span class="s2">&quot;</span><span class="si">${</span>pkgs<span class="o">.</span>alacritty<span class="si">}</span><span class="s2">/bin/alacritty&quot;</span><span class="p">;</span>
+    <span class="ss">theme =</span> <span class="o">.</span><span class="l">/theme.rafi</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>As other programs, it’s defined at <code>~/.config/nixpkgs/programs/rofi/default.nix</code>.</p> <h3 id="polybar">Polybar</h3> <p>When I got started with XMonad, I’ve tried <a href="https://xmobar.org/">XMobar</a> first, which is the default status bar you would see recommended for this window manager. Later on, I gave <a href="https://github.com/taffybar/taffybar">taffybar</a> a try, but it was a bit painful to set up since I needed to add two Nix overlays to get it working as it is usually marked as broken on Nixpkgs.</p> <p>Both of them work fine and might suit your needs (I still keep the configuration files for both in my repo, if you’re interested) but I ultimately fell in love with <a href="https://polybar.github.io/">Polybar</a>. I am actually running two instances of it: one at the top; another at the bottom. There are many existing themes, great documentation and a vibrant community behind it, which makes it even more appealing.</p> <p>It is configured via <a href="https://en.wikipedia.org/wiki/INI_file">INI files</a>. Here’s a snippet.</p> <div class="highlight"><pre><code class="language-ini" data-lang="ini"><span class="k">[global/wm]</span>
+<span class="na">margin-top</span> <span class="o">=</span> <span class="s">0</span>
+<span class="na">margin-bottom</span> <span class="o">=</span> <span class="s">0</span>
+
+<span class="k">[bar/main]</span>
+<span class="na">monitor</span> <span class="o">=</span> <span class="s">${env:MONITOR:HDMI-1}</span>
+<span class="na">width</span> <span class="o">=</span> <span class="s">100%</span>
+<span class="na">height</span> <span class="o">=</span> <span class="s">48</span>
+<span class="na">radius</span> <span class="o">=</span> <span class="s">6.0</span>
+<span class="na">fixed-center</span> <span class="o">=</span> <span class="s">true</span></code></pre></div> <p>It comes packed with a few modules by default such as CPU, memory and network status. However, some modules might require some software to be available in your system. I’ll leave that for you to further read and instead I’ll show you the important part:</p> <ul> <li>XMonad integration to visualize the current window title and workspaces.</li> <li>Dealing with modules that require custom scripts doing it the Nix way.</li> </ul> <p>Here’s my <code>~/.config/nixpkgs/services/polybar/default.nix</code>, which runs as a service you can manage via <code>systemctl</code>.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> config<span class="p">,</span> pkgs<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="k">let</span>
+  <span class="ss">mypolybar =</span> pkgs<span class="o">.</span>polybar<span class="o">.</span>override <span class="p">{</span>
+    <span class="ss">alsaSupport   =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">githubSupport =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">mpdSupport    =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">pulseSupport  =</span> <span class="no">true</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="c1"># theme adapted from: https://github.com/adi1090x/polybar-themes#-polybar-5</span>
+  <span class="ss">bars   =</span> <span class="nb">builtins</span><span class="o">.</span>readFile <span class="o">.</span><span class="l">/bars.ini</span><span class="p">;</span>
+  <span class="ss">colors =</span> <span class="nb">builtins</span><span class="o">.</span>readFile <span class="o">.</span><span class="l">/colors.ini</span><span class="p">;</span>
+  <span class="ss">mods1  =</span> <span class="nb">builtins</span><span class="o">.</span>readFile <span class="o">.</span><span class="l">/modules.ini</span><span class="p">;</span>
+  <span class="ss">mods2  =</span> <span class="nb">builtins</span><span class="o">.</span>readFile <span class="o">.</span><span class="l">/user_modules.ini</span><span class="p">;</span>
+
+  <span class="ss">mprisScript     =</span> pkgs<span class="o">.</span>callPackage <span class="o">.</span><span class="l">/scripts/mpris.nix</span> <span class="p">{};</span>
+
+  <span class="ss">mpris =</span> <span class="s1">&#39;&#39;</span>
+<span class="s1">    [module/mpris]</span>
+<span class="s1">    type = custom/script</span>
+
+<span class="s1">    exec = </span><span class="si">${</span>mprisScript<span class="si">}</span><span class="s1">/bin/mpris</span>
+<span class="s1">    tail = true</span>
+
+<span class="s1">    label-maxlen = 60</span>
+
+<span class="s1">    interval = 2</span>
+<span class="s1">    format =   &lt;label&gt;</span>
+<span class="s1">    format-padding = 2</span>
+<span class="s1">  &#39;&#39;</span><span class="p">;</span>
+
+  <span class="ss">xmonad =</span> <span class="s1">&#39;&#39;</span>
+<span class="s1">    [module/xmonad]</span>
+<span class="s1">    type = custom/script</span>
+<span class="s1">    exec = </span><span class="si">${</span>pkgs<span class="o">.</span>xmonad-log<span class="si">}</span><span class="s1">/bin/xmonad-log</span>
+
+<span class="s1">    tail = true</span>
+<span class="s1">  &#39;&#39;</span><span class="p">;</span>
+<span class="k">in</span>
+<span class="p">{</span>
+  services<span class="o">.</span><span class="ss">polybar =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">package =</span> mypolybar<span class="p">;</span>
+    <span class="ss">config =</span> <span class="o">.</span><span class="l">/config.ini</span><span class="p">;</span>
+    <span class="ss">extraConfig =</span> bars <span class="o">+</span> colors <span class="o">+</span> mods1 <span class="o">+</span> mods2 <span class="o">+</span> mpris <span class="o">+</span> xmonad<span class="p">;</span>
+    <span class="ss">script =</span> <span class="s1">&#39;&#39;</span>
+<span class="s1">      polybar top &amp;</span>
+<span class="s1">      </span><span class="si">${</span>pkgs<span class="o">.</span>coreutils<span class="si">}</span><span class="s1">/bin/sleep 1</span>
+<span class="s1">      polybar bottom &amp;</span>
+<span class="s1">    &#39;&#39;</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>As mentioned above, I’m running two different bars, as the <code>script</code> section shows. I introduced a delay of one second to make sure the system tray gets placed at the top. I couldn’t find a way to manage the tray independently, unfortunately.</p> <p>For the XMonad integration, we only need to add <code>[module/xmonad]</code>. If we were not using Nix, this could have been defined in the INI files but since we are on NixOS, we do it properly by referencing the binary we want to run from this module, which is <code>xmonad-log</code>. We also need to do our part in our XMonad configuration, to make sure it sends out information via DBus.</p> <p>This is most of the code. You can find the complete configuration on my <a href="https://github.com/gvolpe/nix-config/blob/master/home/programs/xmonad/config.hs">Github</a>.</p> <div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="nf">mkDbusClient</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="kt">D</span><span class="o">.</span><span class="kt">Client</span>
+<span class="nf">mkDbusClient</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">dbus</span> <span class="ow">&lt;-</span> <span class="kt">D</span><span class="o">.</span><span class="n">connectSession</span>
+  <span class="kt">D</span><span class="o">.</span><span class="n">requestName</span> <span class="n">dbus</span> <span class="p">(</span><span class="kt">D</span><span class="o">.</span><span class="n">busName_</span> <span class="s">&quot;org.xmonad.log&quot;</span><span class="p">)</span> <span class="n">opts</span>
+  <span class="n">return</span> <span class="n">dbus</span>
+ <span class="kr">where</span>
+  <span class="n">opts</span> <span class="ow">=</span> <span class="p">[</span><span class="kt">D</span><span class="o">.</span><span class="n">nameAllowReplacement</span><span class="p">,</span> <span class="kt">D</span><span class="o">.</span><span class="n">nameReplaceExisting</span><span class="p">,</span> <span class="kt">D</span><span class="o">.</span><span class="n">nameDoNotQueue</span><span class="p">]</span>
+
+<span class="c1">-- Emit a DBus signal on log updates</span>
+<span class="nf">dbusOutput</span> <span class="ow">::</span> <span class="kt">D</span><span class="o">.</span><span class="kt">Client</span> <span class="ow">-&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">dbusOutput</span> <span class="n">dbus</span> <span class="n">str</span> <span class="ow">=</span>
+  <span class="kr">let</span> <span class="n">opath</span>  <span class="ow">=</span> <span class="kt">D</span><span class="o">.</span><span class="n">objectPath_</span> <span class="s">&quot;/org/xmonad/Log&quot;</span>
+      <span class="n">iname</span>  <span class="ow">=</span> <span class="kt">D</span><span class="o">.</span><span class="n">interfaceName_</span> <span class="s">&quot;org.xmonad.Log&quot;</span>
+      <span class="n">mname</span>  <span class="ow">=</span> <span class="kt">D</span><span class="o">.</span><span class="n">memberName_</span> <span class="s">&quot;Update&quot;</span>
+      <span class="n">signal</span> <span class="ow">=</span> <span class="p">(</span><span class="kt">D</span><span class="o">.</span><span class="n">signal</span> <span class="n">opath</span> <span class="n">iname</span> <span class="n">mname</span><span class="p">)</span>
+      <span class="n">body</span>   <span class="ow">=</span> <span class="p">[</span><span class="kt">D</span><span class="o">.</span><span class="n">toVariant</span> <span class="o">$</span> <span class="kt">UTF8</span><span class="o">.</span><span class="n">decodeString</span> <span class="n">str</span><span class="p">]</span>
+  <span class="kr">in</span>  <span class="kt">D</span><span class="o">.</span><span class="n">emit</span> <span class="n">dbus</span> <span class="o">$</span> <span class="n">signal</span> <span class="p">{</span> <span class="kt">D</span><span class="o">.</span><span class="n">signalBody</span> <span class="ow">=</span> <span class="n">body</span> <span class="p">}</span>
+
+<span class="nf">polybarHook</span> <span class="ow">::</span> <span class="kt">D</span><span class="o">.</span><span class="kt">Client</span> <span class="ow">-&gt;</span> <span class="kt">PP</span>
+<span class="nf">polybarHook</span> <span class="n">dbus</span> <span class="ow">=</span>
+  <span class="kr">let</span> <span class="n">wrapper</span> <span class="n">c</span> <span class="n">s</span> <span class="o">|</span> <span class="n">s</span> <span class="o">/=</span> <span class="s">&quot;NSP&quot;</span> <span class="ow">=</span> <span class="n">wrap</span> <span class="p">(</span><span class="s">&quot;%{F&quot;</span> <span class="o">&lt;&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="s">&quot;} &quot;</span><span class="p">)</span> <span class="s">&quot; %{F-}&quot;</span> <span class="n">s</span>
+                  <span class="o">|</span> <span class="n">otherwise</span>  <span class="ow">=</span> <span class="n">mempty</span>
+      <span class="n">blue</span>   <span class="ow">=</span> <span class="s">&quot;#2E9AFE&quot;</span>
+      <span class="n">gray</span>   <span class="ow">=</span> <span class="s">&quot;#7F7F7F&quot;</span>
+      <span class="n">orange</span> <span class="ow">=</span> <span class="s">&quot;#ea4300&quot;</span>
+      <span class="n">purple</span> <span class="ow">=</span> <span class="s">&quot;#9058c7&quot;</span>
+      <span class="n">red</span>    <span class="ow">=</span> <span class="s">&quot;#722222&quot;</span>
+  <span class="kr">in</span>  <span class="n">def</span> <span class="p">{</span> <span class="n">ppOutput</span>          <span class="ow">=</span> <span class="n">dbusOutput</span> <span class="n">dbus</span>
+          <span class="p">,</span> <span class="n">ppCurrent</span>         <span class="ow">=</span> <span class="n">wrapper</span> <span class="n">blue</span>
+          <span class="p">,</span> <span class="n">ppVisible</span>         <span class="ow">=</span> <span class="n">wrapper</span> <span class="n">gray</span>
+          <span class="p">,</span> <span class="n">ppUrgent</span>          <span class="ow">=</span> <span class="n">wrapper</span> <span class="n">orange</span>
+          <span class="p">,</span> <span class="n">ppHidden</span>          <span class="ow">=</span> <span class="n">wrapper</span> <span class="n">gray</span>
+          <span class="p">,</span> <span class="n">ppHiddenNoWindows</span> <span class="ow">=</span> <span class="n">wrapper</span> <span class="n">red</span>
+          <span class="p">,</span> <span class="n">ppTitle</span>           <span class="ow">=</span> <span class="n">shorten</span> <span class="mi">100</span> <span class="o">.</span> <span class="n">wrapper</span> <span class="n">purple</span>
+          <span class="p">}</span>
+
+<span class="nf">myPolybarLogHook</span> <span class="n">dbus</span> <span class="ow">=</span> <span class="n">myLogHook</span> <span class="o">&lt;+&gt;</span> <span class="n">dynamicLogWithPP</span> <span class="p">(</span><span class="n">polybarHook</span> <span class="n">dbus</span><span class="p">)</span></code></pre></div> <p>Now for other custom scripts, you can do the same. Above we see <code>[module/mpris]</code>, which is a shell script that reads the current song being played via <code>playerctl</code>. It is also defined the Nix way, as shown below.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> pkgs<span class="p">,</span> <span class="o">...</span><span class="p">}:</span>
+
+<span class="k">let</span>
+  <span class="ss">pctl =</span> <span class="s2">&quot;</span><span class="si">${</span>pkgs<span class="o">.</span>playerctl<span class="si">}</span><span class="s2">/bin/playerctl&quot;</span><span class="p">;</span>
+<span class="k">in</span>
+  pkgs<span class="o">.</span>writeShellScriptBin <span class="s2">&quot;mpris&quot;</span> <span class="s1">&#39;&#39;</span>
+<span class="s1">    echo $(</span><span class="si">${</span>pctl<span class="si">}</span><span class="s1"> --player=spotify,%any metadata --format </span><span class="err">&#39;</span><span class="s1"> - </span><span class="err">&#39;</span><span class="s1">)</span>
+<span class="s1">  </span><span class="se">&#39;&#39;</span></code></pre></div> <p>Another important setting you might need, depending on your modules, is to add a proper font and icons package to your user packages. This is what I have, for example.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="k">let</span>
+  <span class="ss">polybarPkgs =</span> <span class="k">with</span> pkgs<span class="p">;</span> <span class="p">[</span>
+    font-awesome-ttf      <span class="c1"># awesome fonts</span>
+    material-design-icons <span class="c1"># fonts with glyphs</span>
+  <span class="p">];</span>
+<span class="k">in</span>
+  home<span class="o">.</span><span class="ss">packages =</span> polybarPkgs<span class="p">;</span></code></pre></div> <h3 id="dunst">Dunst</h3> <p><a href="https://dunst-project.org/">Dunst</a> is a lightweight replacement for the notification daemons provided by most desktop environments. It’s very customizable, isn’t dependent on any toolkits, and therefore fits into those window manager centric setups we all love to customize to perfection.</p> <p>That’s a quote from the official site. It also runs a service, and here’s a snippet showing how it is integrated via Home Manager.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> config<span class="p">,</span> pkgs<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="p">{</span>
+  services<span class="o">.</span><span class="ss">dunst =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">iconTheme =</span> <span class="p">{</span>
+      <span class="ss">name =</span> <span class="s2">&quot;Adwaita&quot;</span><span class="p">;</span>
+      <span class="ss">package =</span> pkgs<span class="o">.</span>gnome3<span class="o">.</span>adwaita-icon-theme<span class="p">;</span>
+      <span class="ss">size =</span> <span class="s2">&quot;16x16&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="ss">settings =</span> <span class="p">{</span>
+      <span class="ss">global =</span> <span class="p">{</span>
+        <span class="ss">monitor =</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="ss">geometry =</span> <span class="s2">&quot;600x50-50+65&quot;</span><span class="p">;</span>
+        <span class="ss">shrink =</span> <span class="s2">&quot;yes&quot;</span><span class="p">;</span>
+        <span class="ss">transparency =</span> <span class="mi">10</span><span class="p">;</span>
+        <span class="ss">padding =</span> <span class="mi">16</span><span class="p">;</span>
+        <span class="ss">horizontal_padding =</span> <span class="mi">16</span><span class="p">;</span>
+        <span class="ss">font =</span> <span class="s2">&quot;JetBrainsMono Nerd Font 10&quot;</span><span class="p">;</span>
+        <span class="ss">line_height =</span> <span class="mi">4</span><span class="p">;</span>
+        <span class="ss">format =</span> <span class="s1">&#39;&#39;&lt;b&gt;%s&lt;/b&gt;\n%b&#39;&#39;</span><span class="p">;</span>
+      <span class="p">};</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>I haven’t tried any other notification system and I haven’t been made aware of a better choice but if you do, please let me know. I always like to try new things.</p> <h3 id="betterlockscreen">Betterlockscreen</h3> <p>If you want to configure a screen locker, you’ll find there are quite a few alternatives out there, with <a href="https://i3wm.org/i3lock/">i3lock</a> being probably the most popular option. I’ve tried a few variants of it but I finally settled for <a href="https://github.com/pavanjadhaw/betterlockscreen">betterlockscreen</a>, which is also built on top of <code>i3lock</code>.</p> <p>It runs as a service as well. Here’s my configuration, without much further ado.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> pkgs<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="p">{</span>
+  services<span class="o">.</span><span class="ss">screen-locker =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">inactiveInterval =</span> <span class="mi">30</span><span class="p">;</span>
+    <span class="ss">lockCmd =</span> <span class="s2">&quot;</span><span class="si">${</span>pkgs<span class="o">.</span>betterlockscreen<span class="si">}</span><span class="s2">/bin/betterlockscreen -l dim&quot;</span><span class="p">;</span>
+    <span class="ss">xautolockExtraOptions =</span> <span class="p">[</span>
+      <span class="s2">&quot;Xautolock.killer: systemctl suspend&quot;</span>
+    <span class="p">];</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <h3 id="picom">Picom</h3> <p>What exactly is a compositor? According to <a href="https://en.wikipedia.org/wiki/Compositing_window_manager">Wikipedia</a>, a compositing window manager, or compositor, is a window manager that provides applications with an off-screen buffer for each window. The window manager composites the window buffers into an image representing the screen and writes the result into the display memory.</p> <p><a href="https://github.com/yshui/picom">picom</a> is probably the indisputable default these days, which is a fork of <code>compton</code>, which is also a fork of the original <code>xcompmgr</code>, both “retired” projects.</p> <p>It shouldn’t come as a surprise that it also runs a service. Here’s my configuration.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  services<span class="o">.</span><span class="ss">picom =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">activeOpacity =</span> <span class="s2">&quot;1.0&quot;</span><span class="p">;</span>
+    <span class="ss">inactiveOpacity =</span> <span class="s2">&quot;0.8&quot;</span><span class="p">;</span>
+    <span class="ss">backend =</span> <span class="s2">&quot;glx&quot;</span><span class="p">;</span>
+    <span class="ss">fade =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">fadeDelta =</span> <span class="mi">5</span><span class="p">;</span>
+    <span class="ss">opacityRule =</span> <span class="p">[</span> <span class="s2">&quot;100:name *= &#39;i3lock&#39;&quot;</span> <span class="p">];</span>
+    <span class="ss">shadow =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">shadowOpacity =</span> <span class="s2">&quot;0.75&quot;</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <h3 id="system-tray">System tray</h3> <p>If you use programs like Slack or Telegram, you might appreciate a system tray for them. This is something we also need to take care about. When using XMobar or Taffybar, people usually go for <a href="http://stalonetray.sourceforge.net/">standalonetray</a>, which is fairly basic. Conversely, Polybar users don’t need to worry about it as it comes with a nice system tray by default.</p> <p>The configuration for my system tray is fairly basic. I like to keep it in the center of my top bar.</p> <div class="highlight"><pre><code class="language-ini" data-lang="ini"><span class="na">tray-position</span> <span class="o">=</span> <span class="s">center</span>
+<span class="na">tray-padding</span> <span class="o">=</span> <span class="s">3</span>
+<span class="na">tray-background</span> <span class="o">=</span> <span class="s">${color.bg}</span></code></pre></div> <p>At the beginning of the user level section, I briefly mentioned the use of <code>polybarOpts</code> as an option to <code>xsession.initExtra</code>. This is how it is defined.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="ss">polybarOpts =</span> <span class="s1">&#39;&#39;</span>
+<span class="s1">  nitrogen --restore &amp;</span>
+<span class="s1">  pasystray &amp;</span>
+<span class="s1">  blueman-applet &amp;</span>
+<span class="s1">  nm-applet --sm-disable --indicator &amp;</span>
+<span class="s1">&#39;&#39;</span><span class="p">;</span></code></pre></div> <p>I basically start up some utilities that run in the system tray such as Pulse Audio (<code>pasystray</code>), Bluetooth Manager (<code>blueman-applet</code>) and Network Manager (<code>nm-applet</code>). There’s also <code>nitrogen</code> to restore my wallpaper. Some other folks prefer to use <a href="https://feh.finalrewind.org/">feh</a>. I would use any of them, to be fair, no big preferences.</p> <p>It might also be relevant to set up a GTK theme. This is what I have defined in my <code>home.nix</code>.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="ss">gtk =</span> <span class="p">{</span>
+  <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+  <span class="ss">iconTheme =</span> <span class="p">{</span>
+    <span class="ss">name =</span> <span class="s2">&quot;Adwaita-dark&quot;</span><span class="p">;</span>
+    <span class="ss">package =</span> pkgs<span class="o">.</span>gnome3<span class="o">.</span>adwaita-icon-theme<span class="p">;</span>
+  <span class="p">};</span>
+  <span class="ss">theme =</span> <span class="p">{</span>
+    <span class="ss">name =</span> <span class="s2">&quot;Adwaita-dark&quot;</span><span class="p">;</span>
+    <span class="ss">package =</span> pkgs<span class="o">.</span>gnome3<span class="o">.</span>adwaita-icon-theme<span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">};</span></code></pre></div> <h3 id="udiskie">Udiskie</h3> <p>Since we talked about our system tray, there’s also <a href="https://github.com/coldfix/udiskie">udiskie</a>, which is quite popular. It shows information about removable media and it automounts them by default.</p> <p>We could have started up as part of our XSession but since Home Manager supports running it as a service, I went with it.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  services<span class="o">.</span><span class="ss">udiskie =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">tray =</span> <span class="s2">&quot;always&quot;</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>Home Manager also supports starting up the <a href="https://rycee.gitlab.io/home-manager/options.html#opt-services.network-manager-applet.enable">Network Manager applet</a> as a service but at the moment of writing, it doesn’t support customized flags, so I run it manually in my XSession.</p> <h3 id="conclusion">Conclusion</h3> <p>Wow, we went through a lot of stuff! This is actually a big part of my current NixOS configuration. I hope you have enjoyed the details since when I started playing around with all of it, the information was pretty much scattered around the Internet and I had to figure out a lot of things by trial and error.</p> <p>These settings will probably keep on changing but I’m already in a very comfortable place with my current configuration so I don’t expect drastic changes in the near future but rather small improvements.</p> <p>My full NixOS configuration, including the programs and services managed by Home Manager, can be found on <a href="https://github.com/gvolpe/nix-config">Github</a>.</p> <p>Cheers, Gabriel.</p> <aside class="share"> <span>Share this: </span> <a href="http://twitter.com/share?text=XMonad + Polybar on NixOS&amp;url=https://gvolpe.github.io/xmonad-polybar-nixos/&amp;hashtags=scala,haskell,fp&amp;via=volpegabriel87" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;"> <i class="fa fa-twitter-square"></i> </a> </aside> <hr> <aside id="comments" class="disqus"> <h2 class="txt-center">Comments</h2> <div id="disqus_thread"></div> <script> function hashCode(str) { return Array.from(str) .reduce((s, c) => Math.imul(31, s) + c.charCodeAt(0) | 0, 0) } var disqus_config = function () { this.page.url = 'https://gvolpe.github.io/blog/xmonad-polybar-nixos'; this.page.identifier = hashCode('/xmonad-polybar-nixos'); }; (function() { var d = document, s = d.createElement('script'); s.src = 'https://gvolpe-blog.disqus.com/embed.js'; s.setAttribute('data-timestamp', +new Date()); (d.head || d.body).appendChild(s); })(); </script> <noscript> Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a> </noscript> </aside> </div> </article> <footer class="footer t-center"> <div class="container"> <div class="social-icons"> <ul class="text-left"> <li><a href="https://twitter.com/volpegabriel87" target="_blank"><i class="fa fa-twitter"></i></a></li> </ul> </div> <small>&copy; 2020 All rights reserved. Made with <a href="http://jekyllrb.com" target="_blank">Jekyll</a> and <i class="icon icon-heart"></i></small> <small>by <a href="http://nandomoreira.me" target="_blank">nandomoreira.me</a></small> </div> </footer> </main> </body> </html></body></html>
+<!--
+// # Zetsu Jekyll theme - https://github.com/nandomoreriame/zetsu/
+// by nandomoreira.me
+-->

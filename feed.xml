@@ -5,9 +5,508 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Wed, 01 Jul 2020 07:45:27 +0000</pubDate>
-    <lastBuildDate>Wed, 01 Jul 2020 07:45:27 +0000</lastBuildDate>
+    <pubDate>Wed, 25 Nov 2020 21:27:02 +0000</pubDate>
+    <lastBuildDate>Wed, 25 Nov 2020 21:27:02 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>XMonad + Polybar on NixOS</title>
+        <description>&lt;p&gt;&lt;strong&gt;Table of Contents&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul id=&quot;markdown-toc&quot;&gt;
+  &lt;li&gt;&lt;a href=&quot;#introduction&quot; id=&quot;markdown-toc-introduction&quot;&gt;Introduction&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#xmonad&quot; id=&quot;markdown-toc-xmonad&quot;&gt;XMonad&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#configuration&quot; id=&quot;markdown-toc-configuration&quot;&gt;Configuration&lt;/a&gt;        &lt;ul&gt;
+          &lt;li&gt;&lt;a href=&quot;#system-level&quot; id=&quot;markdown-toc-system-level&quot;&gt;System level&lt;/a&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;a href=&quot;#user-level&quot; id=&quot;markdown-toc-user-level&quot;&gt;User level&lt;/a&gt;&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#rofi&quot; id=&quot;markdown-toc-rofi&quot;&gt;Rofi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#polybar&quot; id=&quot;markdown-toc-polybar&quot;&gt;Polybar&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#dunst&quot; id=&quot;markdown-toc-dunst&quot;&gt;Dunst&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#betterlockscreen&quot; id=&quot;markdown-toc-betterlockscreen&quot;&gt;Betterlockscreen&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#picom&quot; id=&quot;markdown-toc-picom&quot;&gt;Picom&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#system-tray&quot; id=&quot;markdown-toc-system-tray&quot;&gt;System tray&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#udiskie&quot; id=&quot;markdown-toc-udiskie&quot;&gt;Udiskie&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#conclusion&quot; id=&quot;markdown-toc-conclusion&quot;&gt;Conclusion&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;introduction&quot;&gt;Introduction&lt;/h3&gt;
+
+&lt;p&gt;I’ve been a &lt;a href=&quot;https://www.gnome.org/&quot;&gt;Gnome&lt;/a&gt; user for a long time and I have never cared about using a &lt;a href=&quot;https://en.wikipedia.org/wiki/Window_manager&quot;&gt;Window Manager&lt;/a&gt; ever before but I recently switched to using &lt;a href=&quot;https://xmonad.org/&quot;&gt;XMonad&lt;/a&gt; full-time. Why? For a couple of reasons.&lt;/p&gt;
+
+&lt;p&gt;One of the reasons is that I’ve been wanting to try a lightweight window manager for a while. However, the main reason is that Gnome &lt;em&gt;leaks memory&lt;/em&gt;, unfortunately, and it seems to be an issue that’s been around &lt;a href=&quot;https://bugs.launchpad.net/gnome-shell/+bug/1672297&quot;&gt;forever&lt;/a&gt;. Although it has been announced as allegedly solved, I have been experiencing a similar issue in Gnome 3.36 on &lt;a href=&quot;https://nixos.org/&quot;&gt;NixOS&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;After a fresh start, it consumed ~1.2% of my 32GB (about 390MB) but right after 24 hours (only one day of uptime!) I found out it was consuming ~50% (about 16GB!), which is unacceptable. I have screenshots of the memory consumption but I decided to leave them out of this post since it is not about bashing Gnome.&lt;/p&gt;
+
+&lt;p&gt;I know writing solid software is hard and memory leaks are one of the toughest problems to solve in Software Engineering so I only want to thank Gnome for all the good years and wish only the best. My mother still uses Gnome 3 with Ubuntu, FWIW :)&lt;/p&gt;
+
+&lt;p&gt;The good news is that this incident has pushed me into giving XMonad a serious try, and oh boy, there’s no way back! It’s like that day I discovered functional programming. How could I ever write imperative code again?&lt;/p&gt;
+
+&lt;p&gt;NOTE: If you are already familiar with all of this and are only interested in the configuration files, you can find them on my &lt;a href=&quot;https://github.com/gvolpe/nix-config&quot;&gt;Github&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;xmonad&quot;&gt;XMonad&lt;/h3&gt;
+
+&lt;p&gt;XMonad is a dynamically tiling &lt;a href=&quot;https://en.wikipedia.org/wiki/X_Window_System&quot;&gt;X11&lt;/a&gt; window manager that is written and configured in &lt;a href=&quot;https://www.haskell.org/&quot;&gt;Haskell&lt;/a&gt;. There are many tutorials, blog posts, videos and documentation on the Internet about it so I’m only going to focus on getting XMonad properly set up in NixOS.&lt;/p&gt;
+
+&lt;p&gt;This is what it looks like at the moment on my machine (it’s always evolving).&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/xmonad.jpg&quot; alt=&quot;xmonad&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;That’s not only XMonad but also &lt;a href=&quot;https://polybar.github.io/&quot;&gt;Polybar&lt;/a&gt; and &lt;a href=&quot;https://github.com/yshui/picom&quot;&gt;Picom&lt;/a&gt; complementing it, a status bar and a compositor, respectively.&lt;/p&gt;
+
+&lt;p&gt;If you, like me, come from a popular desktop manager such as Gnome or KDE, you might be surprised finding out all the things they do! Since XMonad is merely a window manager, you won’t have out-of-box support for a status bar, notifications, screen locker, etc. This follows the Unix philosophy where we are free to choose how every piece of our software is put together.&lt;/p&gt;
+
+&lt;p&gt;In the next sections, we will look into every piece of software I have configured to get the full desktop manager experience.&lt;/p&gt;
+
+&lt;h4 id=&quot;configuration&quot;&gt;Configuration&lt;/h4&gt;
+
+&lt;p&gt;I configure all my software and user services via &lt;a href=&quot;https://github.com/nix-community/home-manager&quot;&gt;Home Manager&lt;/a&gt;, an amazing Nix tool. It’s great on NixOS but it also works in other Linux distros, if you want to give it a shot.&lt;/p&gt;
+
+&lt;p&gt;However, some programs and services need to be declared at the system level, which is also the case for XMonad. So we will start with it.&lt;/p&gt;
+
+&lt;h5 id=&quot;system-level&quot;&gt;System level&lt;/h5&gt;
+
+&lt;p&gt;I’ve defined the XMonad system configuration under &lt;code&gt;/etc/nixos/wm/xmonad.nix&lt;/code&gt;, and I’ve done pretty much the same with my Gnome configuration, so it would be easy to switch between both.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;services =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome-keyring&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    upower&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;dbus =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;socketActivated =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;packages =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;dconf &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;xserver =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;startDbusSession =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;layout =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;us&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+      &lt;span class=&quot;ss&quot;&gt;libinput =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;disableWhileTyping =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+      displayManager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;defaultSession =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;none+xmonad&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+      windowManager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;xmonad =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;enableContribAndExtras =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+      &lt;span class=&quot;ss&quot;&gt;xkbOptions =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;caps:ctrl_modifier&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  hardware&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;bluetooth&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  services&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;blueman&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  systemd&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;services&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;upower&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;There is a lot declared in this file that is completely unrelated to it but that complements it.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code&gt;gnome3.gnome-keyring&lt;/code&gt;: needed to store credentials such as WiFi passwords, so we don’t need to enter it every time we log in.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;upower&lt;/code&gt;: get system’s power information such as CPU usage. We also need the &lt;code&gt;systemd&lt;/code&gt; daemon.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;dbus&lt;/code&gt;: short for Desktop Bus, allows concurrent communication between multiple processes and it’s kind of ubiquitous these days.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;bluetooth&lt;/code&gt;: enable bluetooth.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;blueman&lt;/code&gt;: enable the bluetooth manager service.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;For what it’s worth, all of these are enabled by default when using either Gnome or KDE.&lt;/p&gt;
+
+&lt;p&gt;The rest of the configuration is part of &lt;code&gt;xserver&lt;/code&gt;, in which case, we need to highlight the default session of our display manager being set to &lt;code&gt;none+xmonad&lt;/code&gt; and enabling XMonad as our window manager. The &lt;code&gt;none&lt;/code&gt; part means we don’t want any Desktop Environment (DE), which defaults to &lt;code&gt;xfce&lt;/code&gt; in NixOS, if I’m not mistaken.&lt;/p&gt;
+
+&lt;p&gt;This file is then imported at &lt;code&gt;/etc/nixos/configuration.nix&lt;/code&gt;, which is the main NixOS configuration file.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;imports =&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+      &lt;span class=&quot;c1&quot;&gt;# Include the results of the hardware scan.&lt;/span&gt;
+      &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/hardware-configuration.nix&lt;/span&gt;
+      &lt;span class=&quot;c1&quot;&gt;# Machine-specific configuration&lt;/span&gt;
+      &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/machine/current.nix&lt;/span&gt;
+      &lt;span class=&quot;c1&quot;&gt;# Window manager&lt;/span&gt;
+      &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/wm/xmonad.nix&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;A regular &lt;code&gt;nixos-rebuild switch&lt;/code&gt; followed by a &lt;code&gt;reboot&lt;/code&gt; are needed for all these changes to become active.&lt;/p&gt;
+
+&lt;h5 id=&quot;user-level&quot;&gt;User level&lt;/h5&gt;
+
+&lt;p&gt;User-level configuration includes all the dotfiles that usually live under &lt;code&gt;$HOME/.config&lt;/code&gt; as well as user-level services managed via &lt;code&gt;systemctl&lt;/code&gt;. This is the perfect fit for Home Manager (HM). So here’s how I set the required Haskell configuration for XMonad, along with other options, declared under &lt;code&gt;~/.config/nixpkgs/programs/xmonad/default.nix&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;xsession =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;initExtra =&lt;/span&gt; polybarOpts&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    windowManager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;xmonad =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;enableContribAndExtras =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;extraPackages =&lt;/span&gt; hp&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+        hp&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;dbus
+        hp&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;monad-logger
+        hp&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;xmonad-contrib
+      &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;config =&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/config.hs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;We will later see how &lt;code&gt;polybarOpts&lt;/code&gt; is defined and whether that’s needed for you or not. This file is then imported by &lt;code&gt;~/.config/nixpkgs/home.nix&lt;/code&gt;, in the same way we do it at the system level.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; stdenv&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  programs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;home-manager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;imports =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/programs/xmonad/default.nix&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;In general, all the programs and user-level services are imported in this way, to keep the modularity.&lt;/p&gt;
+
+&lt;h3 id=&quot;rofi&quot;&gt;Rofi&lt;/h3&gt;
+
+&lt;p&gt;Right after XMonad is installed, having an application launcher (recommended) might be very convenient to have. Otherwise, the only way to run applications will be directly from a terminal, which is not the nicest experience for GUI programs. This is where tools such as &lt;a href=&quot;https://tools.suckless.org/dmenu/&quot;&gt;dmenu&lt;/a&gt; and &lt;a href=&quot;https://github.com/davatorium/rofi&quot;&gt;Rofi&lt;/a&gt; come into place.&lt;/p&gt;
+
+&lt;p&gt;The former has been around for a long time and it’s a good default but after trying out both, I’ve settled for Rofi, which is a modern replacement for &lt;code&gt;dmenu&lt;/code&gt;. You can customize its look and feel as you please and there are a few themes to select from if you prefer something already made.&lt;/p&gt;
+
+&lt;p&gt;Here’s how it looks on my machine.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/rofi.png&quot; alt=&quot;rofi&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I use a customized version of the &lt;a href=&quot;https://github.com/davatorium/rofi/blob/next/themes/arthur.rasi&quot;&gt;Arthur theme&lt;/a&gt;. Here’s how to import it using Home Manager.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  programs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;rofi =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;terminal =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;alacritty&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/bin/alacritty&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;theme =&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/theme.rafi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;As other programs, it’s defined at &lt;code&gt;~/.config/nixpkgs/programs/rofi/default.nix&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;polybar&quot;&gt;Polybar&lt;/h3&gt;
+
+&lt;p&gt;When I got started with XMonad, I’ve tried &lt;a href=&quot;https://xmobar.org/&quot;&gt;XMobar&lt;/a&gt; first, which is the default status bar you would see recommended for this window manager. Later on, I gave &lt;a href=&quot;https://github.com/taffybar/taffybar&quot;&gt;taffybar&lt;/a&gt; a try, but it was a bit painful to set up since I needed to add two Nix overlays to get it working as it is usually marked as broken on Nixpkgs.&lt;/p&gt;
+
+&lt;p&gt;Both of them work fine and might suit your needs (I still keep the configuration files for both in my repo, if you’re interested) but I ultimately fell in love with &lt;a href=&quot;https://polybar.github.io/&quot;&gt;Polybar&lt;/a&gt;. I am actually running two instances of it: one at the top; another at the bottom. There are many existing themes, great documentation and a vibrant community behind it, which makes it even more appealing.&lt;/p&gt;
+
+&lt;p&gt;It is configured via &lt;a href=&quot;https://en.wikipedia.org/wiki/INI_file&quot;&gt;INI files&lt;/a&gt;. Here’s a snippet.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ini&quot; data-lang=&quot;ini&quot;&gt;&lt;span class=&quot;k&quot;&gt;[global/wm]&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;margin-top&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;0&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;margin-bottom&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;0&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;[bar/main]&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;monitor&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;${env:MONITOR:HDMI-1}&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;width&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;100%&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;height&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;48&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;radius&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;6.0&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;fixed-center&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;true&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It comes packed with a few modules by default such as CPU, memory and network status. However, some modules might require some software to be available in your system. I’ll leave that for you to further read and instead I’ll show you the important part:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;XMonad integration to visualize the current window title and workspaces.&lt;/li&gt;
+  &lt;li&gt;Dealing with modules that require custom scripts doing it the Nix way.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Here’s my &lt;code&gt;~/.config/nixpkgs/services/polybar/default.nix&lt;/code&gt;, which runs as a service you can manage via &lt;code&gt;systemctl&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;mypolybar =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;polybar&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;override &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;alsaSupport   =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;githubSupport =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;mpdSupport    =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;pulseSupport  =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;c1&quot;&gt;# theme adapted from: https://github.com/adi1090x/polybar-themes#-polybar-5&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;bars   =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;builtins&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;readFile &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/bars.ini&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;colors =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;builtins&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;readFile &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/colors.ini&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;mods1  =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;builtins&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;readFile &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/modules.ini&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;mods2  =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;builtins&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;readFile &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/user_modules.ini&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;mprisScript     =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;callPackage &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/scripts/mpris.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;mpris =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    [module/mpris]&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    type = custom/script&lt;/span&gt;
+
+&lt;span class=&quot;s1&quot;&gt;    exec = &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;mprisScript&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;/bin/mpris&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    tail = true&lt;/span&gt;
+
+&lt;span class=&quot;s1&quot;&gt;    label-maxlen = 60&lt;/span&gt;
+
+&lt;span class=&quot;s1&quot;&gt;    interval = 2&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    format =   &amp;lt;label&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    format-padding = 2&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;xmonad =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    [module/xmonad]&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    type = custom/script&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    exec = &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;xmonad-log&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;/bin/xmonad-log&lt;/span&gt;
+
+&lt;span class=&quot;s1&quot;&gt;    tail = true&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  services&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;polybar =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;package =&lt;/span&gt; mypolybar&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;config =&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/config.ini&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;extraConfig =&lt;/span&gt; bars &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; colors &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; mods1 &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; mods2 &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; mpris &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; xmonad&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;script =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;      polybar top &amp;amp;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;      &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;coreutils&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;/bin/sleep 1&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;      polybar bottom &amp;amp;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;As mentioned above, I’m running two different bars, as the &lt;code&gt;script&lt;/code&gt; section shows. I introduced a delay of one second to make sure the system tray gets placed at the top. I couldn’t find a way to manage the tray independently, unfortunately.&lt;/p&gt;
+
+&lt;p&gt;For the XMonad integration, we only need to add &lt;code&gt;[module/xmonad]&lt;/code&gt;. If we were not using Nix, this could have been defined in the INI files but since we are on NixOS, we do it properly by referencing the binary we want to run from this module, which is &lt;code&gt;xmonad-log&lt;/code&gt;. We also need to do our part in our XMonad configuration, to make sure it sends out information via DBus.&lt;/p&gt;
+
+&lt;p&gt;This is most of the code. You can find the complete configuration on my &lt;a href=&quot;https://github.com/gvolpe/nix-config/blob/master/home/programs/xmonad/config.hs&quot;&gt;Github&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mkDbusClient&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Client&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;mkDbusClient&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;do&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;connectSession&lt;/span&gt;
+  &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;requestName&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;busName_&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;org.xmonad.log&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;opts&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt;
+ &lt;span class=&quot;kr&quot;&gt;where&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;opts&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nameAllowReplacement&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nameReplaceExisting&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nameDoNotQueue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;-- Emit a DBus signal on log updates&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;dbusOutput&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Client&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;dbusOutput&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;str&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;
+  &lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;opath&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;objectPath_&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;/org/xmonad/Log&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;iname&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interfaceName_&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;org.xmonad.Log&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;mname&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;memberName_&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Update&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;opath&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;iname&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mname&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;body&lt;/span&gt;   &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;toVariant&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;UTF8&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;decodeString&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;kr&quot;&gt;in&lt;/span&gt;  &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;emit&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;signal&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;signalBody&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;body&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nf&quot;&gt;polybarHook&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Client&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;PP&lt;/span&gt;
+&lt;span class=&quot;nf&quot;&gt;polybarHook&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;
+  &lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wrapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;NSP&amp;quot;&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wrap&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;%{F&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;} &amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot; %{F-}&amp;quot;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;
+                  &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;otherwise&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mempty&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;   &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;#2E9AFE&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;gray&lt;/span&gt;   &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;#7F7F7F&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;orange&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;#ea4300&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;purple&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;#9058c7&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;red&lt;/span&gt;    &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;#722222&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;kr&quot;&gt;in&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ppOutput&lt;/span&gt;          &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbusOutput&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ppCurrent&lt;/span&gt;         &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wrapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;blue&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ppVisible&lt;/span&gt;         &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wrapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gray&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ppUrgent&lt;/span&gt;          &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wrapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;orange&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ppHidden&lt;/span&gt;          &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wrapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gray&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ppHiddenNoWindows&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wrapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;red&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ppTitle&lt;/span&gt;           &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shorten&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;wrapper&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;purple&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nf&quot;&gt;myPolybarLogHook&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;myLogHook&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;+&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dynamicLogWithPP&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;polybarHook&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dbus&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Now for other custom scripts, you can do the same. Above we see &lt;code&gt;[module/mpris]&lt;/code&gt;, which is a shell script that reads the current song being played via &lt;code&gt;playerctl&lt;/code&gt;. It is also defined the Nix way, as shown below.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;pctl =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;playerctl&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/bin/playerctl&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+  pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;writeShellScriptBin &lt;span class=&quot;s2&quot;&gt;&amp;quot;mpris&amp;quot;&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    echo $(&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;pctl&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt; --player=spotify,%any metadata --format &lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt; - &lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  &lt;/span&gt;&lt;span class=&quot;se&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Another important setting you might need, depending on your modules, is to add a proper font and icons package to your user packages. This is what I have, for example.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;polybarPkgs =&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;with&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+    font-awesome-ttf      &lt;span class=&quot;c1&quot;&gt;# awesome fonts&lt;/span&gt;
+    material-design-icons &lt;span class=&quot;c1&quot;&gt;# fonts with glyphs&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+  home&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;packages =&lt;/span&gt; polybarPkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;dunst&quot;&gt;Dunst&lt;/h3&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://dunst-project.org/&quot;&gt;Dunst&lt;/a&gt; is a lightweight replacement for the notification daemons provided by most desktop environments. It’s very customizable, isn’t dependent on any toolkits, and therefore fits into those window manager centric setups we all love to customize to perfection.&lt;/p&gt;
+
+&lt;p&gt;That’s a quote from the official site. It also runs a service, and here’s a snippet showing how it is integrated via Home Manager.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  services&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;dunst =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;iconTheme =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;name =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Adwaita&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;package =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;adwaita-icon-theme&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;size =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;16x16&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;settings =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;global =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;monitor =&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;geometry =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;600x50-50+65&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;shrink =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;yes&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;transparency =&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;padding =&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;horizontal_padding =&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;font =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;JetBrainsMono Nerd Font 10&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;line_height =&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;format =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&amp;lt;b&amp;gt;%s&amp;lt;/b&amp;gt;\n%b&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I haven’t tried any other notification system and I haven’t been made aware of a better choice but if you do, please let me know. I always like to try new things.&lt;/p&gt;
+
+&lt;h3 id=&quot;betterlockscreen&quot;&gt;Betterlockscreen&lt;/h3&gt;
+
+&lt;p&gt;If you want to configure a screen locker, you’ll find there are quite a few alternatives out there, with &lt;a href=&quot;https://i3wm.org/i3lock/&quot;&gt;i3lock&lt;/a&gt; being probably the most popular option. I’ve tried a few variants of it but I finally settled for &lt;a href=&quot;https://github.com/pavanjadhaw/betterlockscreen&quot;&gt;betterlockscreen&lt;/a&gt;, which is also built on top of &lt;code&gt;i3lock&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;It runs as a service as well. Here’s my configuration, without much further ado.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  services&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;screen-locker =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;inactiveInterval =&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;lockCmd =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;betterlockscreen&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/bin/betterlockscreen -l dim&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;xautolockExtraOptions =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+      &lt;span class=&quot;s2&quot;&gt;&amp;quot;Xautolock.killer: systemctl suspend&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;picom&quot;&gt;Picom&lt;/h3&gt;
+
+&lt;p&gt;What exactly is a compositor? According to &lt;a href=&quot;https://en.wikipedia.org/wiki/Compositing_window_manager&quot;&gt;Wikipedia&lt;/a&gt;, a compositing window manager, or compositor, is a window manager that provides applications with an off-screen buffer for each window. The window manager composites the window buffers into an image representing the screen and writes the result into the display memory.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/yshui/picom&quot;&gt;picom&lt;/a&gt; is probably the indisputable default these days, which is a fork of &lt;code&gt;compton&lt;/code&gt;, which is also a fork of the original &lt;code&gt;xcompmgr&lt;/code&gt;, both “retired” projects.&lt;/p&gt;
+
+&lt;p&gt;It shouldn’t come as a surprise that it also runs a service. Here’s my configuration.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  services&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;picom =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;activeOpacity =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;1.0&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;inactiveOpacity =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;0.8&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;backend =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;glx&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;fade =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;fadeDelta =&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;opacityRule =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;100:name *= &amp;#39;i3lock&amp;#39;&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;shadow =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;shadowOpacity =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;0.75&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;system-tray&quot;&gt;System tray&lt;/h3&gt;
+
+&lt;p&gt;If you use programs like Slack or Telegram, you might appreciate a system tray for them. This is something we also need to take care about. When using XMobar or Taffybar, people usually go for &lt;a href=&quot;http://stalonetray.sourceforge.net/&quot;&gt;standalonetray&lt;/a&gt;, which is fairly basic. Conversely, Polybar users don’t need to worry about it as it comes with a nice system tray by default.&lt;/p&gt;
+
+&lt;p&gt;The configuration for my system tray is fairly basic. I like to keep it in the center of my top bar.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ini&quot; data-lang=&quot;ini&quot;&gt;&lt;span class=&quot;na&quot;&gt;tray-position&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;center&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-padding&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;3&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-background&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;${color.bg}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;At the beginning of the user level section, I briefly mentioned the use of &lt;code&gt;polybarOpts&lt;/code&gt; as an option to &lt;code&gt;xsession.initExtra&lt;/code&gt;.  This is how it is defined.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;ss&quot;&gt;polybarOpts =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  nitrogen --restore &amp;amp;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  pasystray &amp;amp;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  blueman-applet &amp;amp;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  nm-applet --sm-disable --indicator &amp;amp;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I basically start up some utilities that run in the system tray such as Pulse Audio (&lt;code&gt;pasystray&lt;/code&gt;), Bluetooth Manager (&lt;code&gt;blueman-applet&lt;/code&gt;) and Network Manager (&lt;code&gt;nm-applet&lt;/code&gt;). There’s also &lt;code&gt;nitrogen&lt;/code&gt; to restore my wallpaper. Some other folks prefer to use &lt;a href=&quot;https://feh.finalrewind.org/&quot;&gt;feh&lt;/a&gt;. I would use any of them, to be fair, no big preferences.&lt;/p&gt;
+
+&lt;p&gt;It might also be relevant to set up a GTK theme. This is what I have defined in my &lt;code&gt;home.nix&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;ss&quot;&gt;gtk =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;iconTheme =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;name =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Adwaita-dark&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;package =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;adwaita-icon-theme&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;theme =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;name =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Adwaita-dark&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;package =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;adwaita-icon-theme&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;udiskie&quot;&gt;Udiskie&lt;/h3&gt;
+
+&lt;p&gt;Since we talked about our system tray, there’s also &lt;a href=&quot;https://github.com/coldfix/udiskie&quot;&gt;udiskie&lt;/a&gt;, which is quite popular. It shows information about removable media and it automounts them by default.&lt;/p&gt;
+
+&lt;p&gt;We could have started up as part of our XSession but since Home Manager supports running it as a service, I went with it.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  services&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;udiskie =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;tray =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;always&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Home Manager also supports starting up the &lt;a href=&quot;https://rycee.gitlab.io/home-manager/options.html#opt-services.network-manager-applet.enable&quot;&gt;Network Manager applet&lt;/a&gt; as a service but at the moment of writing, it doesn’t support customized flags, so I run it manually in my XSession.&lt;/p&gt;
+
+&lt;h3 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h3&gt;
+
+&lt;p&gt;Wow, we went through a lot of stuff! This is actually a big part of my current NixOS configuration. I hope you have enjoyed the details since when I started playing around with all of it, the information was pretty much scattered around the Internet and I had to figure out a lot of things by trial and error.&lt;/p&gt;
+
+&lt;p&gt;These settings will probably keep on changing but I’m already in a very comfortable place with my current configuration so I don’t expect drastic changes in the near future but rather small improvements.&lt;/p&gt;
+
+&lt;p&gt;My full NixOS configuration, including the programs and services managed by Home Manager, can be found on &lt;a href=&quot;https://github.com/gvolpe/nix-config&quot;&gt;Github&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Cheers,
+Gabriel.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 25 Nov 2020 18:49:00 +0000</pubDate>
+        <link>https://gvolpe.github.io/blog/xmonad-polybar-nixos/</link>
+        <guid isPermaLink="true">https://gvolpe.github.io/blog/xmonad-polybar-nixos/</guid>
+        
+        
+        <category>nix,</category>
+        
+        <category>nixos,</category>
+        
+        <category>xmonad,</category>
+        
+        <category>polybar,</category>
+        
+        <category>linux,</category>
+        
+        <category>statusbar,</category>
+        
+        <category>wm,</category>
+        
+        <category>windowmanager</category>
+        
+      </item>
     
       <item>
         <title>Gnome 3 on NixOS</title>
