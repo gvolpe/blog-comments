@@ -1,21 +1,3 @@
-jobs:
-  publish:
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: "actions/checkout@v2.1.0"
-      - uses: "cachix/install-nix-action@v9"
-      - uses: "cachix/cachix-action@v6"
-        with:
-          name: gvolpe-blog
-          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
-      - name: "Generating site 🚧"
-        run: "nix-shell --run \"bundle install && bundle exec rake site:generate\""
-      - name: "Deploy 🚀"
-        uses: "JamesIves/github-pages-deploy-action@3.5.3"
-        with:
-          ACCESS_TOKEN: "${{ secrets.ACCESS_TOKEN }}"
-          BRANCH: gh-pages
-          FOLDER: "_site"
 name: Blog
 on:
   push:
@@ -24,3 +6,22 @@ on:
     paths:
       - "_posts/**"
       - "images/**"
+
+jobs:
+  publish:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2.1.0
+      - uses: cachix/install-nix-action@v12
+      - uses: cachix/cachix-action@v8
+        with:
+          name: gvolpe-blog
+          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+      - name: "Generating site 🚧"
+        run: nix-shell --run "bundle install && bundle exec rake site:generate"
+      - name: "Deploy 🚀"
+        uses: JamesIves/github-pages-deploy-action@3.5.3
+        with:
+          ACCESS_TOKEN: "${{ secrets.ACCESS_TOKEN }}"
+          BRANCH: gh-pages
+          FOLDER: "_site"
