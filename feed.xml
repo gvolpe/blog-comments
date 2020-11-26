@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Wed, 25 Nov 2020 21:32:01 +0000</pubDate>
-    <lastBuildDate>Wed, 25 Nov 2020 21:32:01 +0000</lastBuildDate>
+    <pubDate>Thu, 26 Nov 2020 08:56:48 +0000</pubDate>
+    <lastBuildDate>Thu, 26 Nov 2020 08:56:48 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -67,9 +67,11 @@
 
 &lt;p&gt;However, some programs and services need to be declared at the system level, which is also the case for XMonad. So we will start with it.&lt;/p&gt;
 
+&lt;p&gt;All configuration files live under &lt;code&gt;/etc/nixos/&lt;/code&gt; and &lt;code&gt;~/.config/nixpkgs/&lt;/code&gt; for system-level configuration and user-level configuration, respectively. Therefore, only the relative path will be mentioned in the following sections.&lt;/p&gt;
+
 &lt;h5 id=&quot;system-level&quot;&gt;System level&lt;/h5&gt;
 
-&lt;p&gt;I’ve defined the XMonad system configuration under &lt;code&gt;/etc/nixos/wm/xmonad.nix&lt;/code&gt;, and I’ve done pretty much the same with my Gnome configuration, so it would be easy to switch between both.&lt;/p&gt;
+&lt;p&gt;I’ve defined the XMonad system configuration under &lt;code&gt;wm/xmonad.nix&lt;/code&gt;, and I’ve done pretty much the same with my Gnome configuration, so it would be easy to switch between both.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
 
@@ -125,7 +127,7 @@
 
 &lt;p&gt;The rest of the configuration is part of &lt;code&gt;xserver&lt;/code&gt;, in which case, we need to highlight the default session of our display manager being set to &lt;code&gt;none+xmonad&lt;/code&gt; and enabling XMonad as our window manager. The &lt;code&gt;none&lt;/code&gt; part means we don’t want any Desktop Environment (DE), which defaults to &lt;code&gt;xfce&lt;/code&gt; in NixOS, if I’m not mistaken.&lt;/p&gt;
 
-&lt;p&gt;This file is then imported at &lt;code&gt;/etc/nixos/configuration.nix&lt;/code&gt;, which is the main NixOS configuration file.&lt;/p&gt;
+&lt;p&gt;This file is then imported at &lt;code&gt;configuration.nix&lt;/code&gt;, which is the main NixOS configuration file.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
   &lt;span class=&quot;ss&quot;&gt;imports =&lt;/span&gt;
@@ -143,7 +145,31 @@
 
 &lt;h5 id=&quot;user-level&quot;&gt;User level&lt;/h5&gt;
 
-&lt;p&gt;User-level configuration includes all the dotfiles that usually live under &lt;code&gt;$HOME/.config&lt;/code&gt; as well as user-level services managed via &lt;code&gt;systemctl&lt;/code&gt;. This is the perfect fit for Home Manager (HM). So here’s how I set the required Haskell configuration for XMonad, along with other options, declared under &lt;code&gt;~/.config/nixpkgs/programs/xmonad/default.nix&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;User-level configuration includes all the dotfiles that usually live under &lt;code&gt;$HOME/.config&lt;/code&gt; as well as user-level services managed via &lt;code&gt;systemctl&lt;/code&gt;. This is the perfect fit for Home Manager (HM). For reference, this is how the files are organized.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;.
+├── config.nix
+├── home.nix
+├── overlays
+├── programs
+│   ├── alacritty
+│   ├── browsers
+│   ├── fish
+│   ├── git
+│   ├── neovim
+│   ├── rofi
+│   └── xmonad
+├── services
+│   ├── dunst
+│   ├── gpg-agent
+│   ├── networkmanager
+│   ├── picom
+│   ├── polybar
+│   ├── screenlocker
+│   └── udiskie
+└── unstable.nix&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Every folder has a &lt;code&gt;default.nix&lt;/code&gt; we import in &lt;code&gt;home.nix&lt;/code&gt;. So, for example, the configuration for XMonad lives under &lt;code&gt;programs/xmonad/default.nix&lt;/code&gt;, and so on. Its definition is shown below.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
   &lt;span class=&quot;ss&quot;&gt;xsession =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
@@ -164,7 +190,7 @@
   &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;We will later see how &lt;code&gt;polybarOpts&lt;/code&gt; is defined and whether that’s needed for you or not. This file is then imported by &lt;code&gt;~/.config/nixpkgs/home.nix&lt;/code&gt;, in the same way we do it at the system level.&lt;/p&gt;
+&lt;p&gt;We will later see how &lt;code&gt;polybarOpts&lt;/code&gt; is defined and whether that’s needed for you or not. This file is then imported by &lt;code&gt;home.nix&lt;/code&gt;, in the same way we do it at the system level.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; stdenv&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
 
@@ -200,8 +226,6 @@
   &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;As other programs, it’s defined at &lt;code&gt;~/.config/nixpkgs/programs/rofi/default.nix&lt;/code&gt;.&lt;/p&gt;
-
 &lt;h3 id=&quot;polybar&quot;&gt;Polybar&lt;/h3&gt;
 
 &lt;p&gt;When I got started with XMonad, I’ve tried &lt;a href=&quot;https://xmobar.org/&quot;&gt;XMobar&lt;/a&gt; first, which is the default status bar you would see recommended for this window manager. Later on, I gave &lt;a href=&quot;https://github.com/taffybar/taffybar&quot;&gt;taffybar&lt;/a&gt; a try, but it was a bit painful to set up since I needed to add two Nix overlays to get it working as it is usually marked as broken on Nixpkgs.&lt;/p&gt;
@@ -228,7 +252,7 @@
   &lt;li&gt;Dealing with modules that require custom scripts doing it the Nix way.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;Here’s my &lt;code&gt;~/.config/nixpkgs/services/polybar/default.nix&lt;/code&gt;, which runs as a service you can manage via &lt;code&gt;systemctl&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Here’s my configuration, which runs as a service you can manage via &lt;code&gt;systemctl&lt;/code&gt;.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
 
