@@ -45,9 +45,11 @@ I configure all my software and user services via [Home Manager](https://github.
 
 However, some programs and services need to be declared at the system level, which is also the case for XMonad. So we will start with it.
 
+All configuration files live under `/etc/nixos/` and `~/.config/nixpkgs/` for system-level configuration and user-level configuration, respectively. Therefore, only the relative path will be mentioned in the following sections.
+
 ##### System level
 
-I've defined the XMonad system configuration under `/etc/nixos/wm/xmonad.nix`, and I've done pretty much the same with my Gnome configuration, so it would be easy to switch between both.
+I've defined the XMonad system configuration under `wm/xmonad.nix`, and I've done pretty much the same with my Gnome configuration, so it would be easy to switch between both.
 
 {% highlight nix %}
 { config, lib, pkgs, ... }:
@@ -103,7 +105,7 @@ For what it's worth, all of these are enabled by default when using either Gnome
 
 The rest of the configuration is part of `xserver`, in which case, we need to highlight the default session of our display manager being set to `none+xmonad` and enabling XMonad as our window manager. The `none` part means we don't want any Desktop Environment (DE), which defaults to `xfce` in NixOS, if I'm not mistaken.
 
-This file is then imported at `/etc/nixos/configuration.nix`, which is the main NixOS configuration file.
+This file is then imported at `configuration.nix`, which is the main NixOS configuration file.
 
 {% highlight nix %}
 {
@@ -123,7 +125,33 @@ A regular `nixos-rebuild switch` followed by a `reboot` are needed for all these
 
 ##### User level
 
-User-level configuration includes all the dotfiles that usually live under `$HOME/.config` as well as user-level services managed via `systemctl`. This is the perfect fit for Home Manager (HM). So here's how I set the required Haskell configuration for XMonad, along with other options, declared under `~/.config/nixpkgs/programs/xmonad/default.nix`.
+User-level configuration includes all the dotfiles that usually live under `$HOME/.config` as well as user-level services managed via `systemctl`. This is the perfect fit for Home Manager (HM). For reference, this is how the files are organized.
+
+{% highlight bash %}
+.
+├── config.nix
+├── home.nix
+├── overlays
+├── programs
+│   ├── alacritty
+│   ├── browsers
+│   ├── fish
+│   ├── git
+│   ├── neovim
+│   ├── rofi
+│   └── xmonad
+├── services
+│   ├── dunst
+│   ├── gpg-agent
+│   ├── networkmanager
+│   ├── picom
+│   ├── polybar
+│   ├── screenlocker
+│   └── udiskie
+└── unstable.nix
+{% endhighlight %}
+
+Every folder has a `default.nix` we import in `home.nix`. So, for example, the configuration for XMonad lives under `programs/xmonad/default.nix`, and so on. Its definition is shown below.
 
 {% highlight nix %}
 {
@@ -146,7 +174,7 @@ User-level configuration includes all the dotfiles that usually live under `$HOM
 }
 {% endhighlight %}
 
-We will later see how `polybarOpts` is defined and whether that's needed for you or not. This file is then imported by `~/.config/nixpkgs/home.nix`, in the same way we do it at the system level.
+We will later see how `polybarOpts` is defined and whether that's needed for you or not. This file is then imported by `home.nix`, in the same way we do it at the system level.
 
 {% highlight nix %}
 { config, lib, pkgs, stdenv, ... }:
@@ -186,8 +214,6 @@ I use a customized version of the [Arthur theme](https://github.com/davatorium/r
 }
 {% endhighlight %}
 
-As other programs, it's defined at `~/.config/nixpkgs/programs/rofi/default.nix`.
-
 ### Polybar
 
 When I got started with XMonad, I've tried [XMobar](https://xmobar.org/) first, which is the default status bar you would see recommended for this window manager. Later on, I gave [taffybar](https://github.com/taffybar/taffybar) a try, but it was a bit painful to set up since I needed to add two Nix overlays to get it working as it is usually marked as broken on Nixpkgs.
@@ -214,7 +240,7 @@ It comes packed with a few modules by default such as CPU, memory and network st
 - XMonad integration to visualize the current window title and workspaces.
 - Dealing with modules that require custom scripts doing it the Nix way.
 
-Here's my `~/.config/nixpkgs/services/polybar/default.nix`, which runs as a service you can manage via `systemctl`.
+Here's my configuration, which runs as a service you can manage via `systemctl`.
 
 {% highlight nix %}
 { config, pkgs, ... }:
