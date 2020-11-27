@@ -291,14 +291,13 @@ in
     extraConfig = bars + colors + mods1 + mods2 + mpris + xmonad;
     script = ''
       polybar top &
-      ${pkgs.coreutils}/bin/sleep 1
       polybar bottom &
     '';
   };
 }
 {% endhighlight %}
 
-As mentioned above, I'm running two different bars, as the `script` section shows. I introduced a delay of one second to make sure the system tray gets placed at the top. I couldn't find a way to manage the tray independently, unfortunately.
+As mentioned above, I'm running two different bars, as the `script` section shows.
 
 For the XMonad integration, we only need to add `[module/xmonad]`. If we were not using Nix, this could have been defined in the INI files but since we are on NixOS, we do it properly by referencing the binary we want to run from this module, which is `xmonad-log`. We also need to do our part in our XMonad configuration, to make sure it sends out information via DBus.
 
@@ -454,12 +453,26 @@ It shouldn't come as a surprise that it also runs a service. Here's my configura
 
 If you use programs like Slack or Telegram, you might appreciate a system tray for them. This is something we also need to take care about. When using XMobar or Taffybar, people usually go for [standalonetray](http://stalonetray.sourceforge.net/), which is fairly basic. Conversely, Polybar users don't need to worry about it as it comes with a nice system tray by default.
 
-The configuration for my system tray is fairly basic. I like to keep it in the center of my top bar.
+The configuration for my system tray is fairly basic. I keep it in the center of my top bar.
 
 {% highlight ini %}
-tray-position = center
 tray-padding = 3
 tray-background = ${color.bg}
+tray-detached = false
+tray-maxsize = 6
+tray-offset-x = 0
+tray-offset-y = 0
+tray-padding = 0
+tray-scale = 1.0
+
+[bar/top]
+inherit = bar/main
+tray-position = center
+
+[bar/bottom]
+inherit = bar/main
+bottom = true
+tray-position = none
 {% endhighlight %}
 
 At the beginning of the user level section, I briefly mentioned the use of `polybarOpts` as an option to `xsession.initExtra`.  This is how it is defined.
