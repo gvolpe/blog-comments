@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 26 Nov 2020 08:56:48 +0000</pubDate>
-    <lastBuildDate>Thu, 26 Nov 2020 08:56:48 +0000</lastBuildDate>
+    <pubDate>Fri, 27 Nov 2020 17:47:59 +0000</pubDate>
+    <lastBuildDate>Fri, 27 Nov 2020 17:47:59 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -302,13 +302,12 @@
     &lt;span class=&quot;ss&quot;&gt;extraConfig =&lt;/span&gt; bars &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; colors &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; mods1 &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; mods2 &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; mpris &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; xmonad&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;ss&quot;&gt;script =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
 &lt;span class=&quot;s1&quot;&gt;      polybar top &amp;amp;&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;      &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;coreutils&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;/bin/sleep 1&lt;/span&gt;
 &lt;span class=&quot;s1&quot;&gt;      polybar bottom &amp;amp;&lt;/span&gt;
 &lt;span class=&quot;s1&quot;&gt;    &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
   &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;As mentioned above, I’m running two different bars, as the &lt;code&gt;script&lt;/code&gt; section shows. I introduced a delay of one second to make sure the system tray gets placed at the top. I couldn’t find a way to manage the tray independently, unfortunately.&lt;/p&gt;
+&lt;p&gt;As mentioned above, I’m running two different bars, as the &lt;code&gt;script&lt;/code&gt; section shows.&lt;/p&gt;
 
 &lt;p&gt;For the XMonad integration, we only need to add &lt;code&gt;[module/xmonad]&lt;/code&gt;. If we were not using Nix, this could have been defined in the INI files but since we are on NixOS, we do it properly by referencing the binary we want to run from this module, which is &lt;code&gt;xmonad-log&lt;/code&gt;. We also need to do our part in our XMonad configuration, to make sure it sends out information via DBus.&lt;/p&gt;
 
@@ -452,11 +451,25 @@
 
 &lt;p&gt;If you use programs like Slack or Telegram, you might appreciate a system tray for them. This is something we also need to take care about. When using XMobar or Taffybar, people usually go for &lt;a href=&quot;http://stalonetray.sourceforge.net/&quot;&gt;standalonetray&lt;/a&gt;, which is fairly basic. Conversely, Polybar users don’t need to worry about it as it comes with a nice system tray by default.&lt;/p&gt;
 
-&lt;p&gt;The configuration for my system tray is fairly basic. I like to keep it in the center of my top bar.&lt;/p&gt;
+&lt;p&gt;The configuration for my system tray is fairly basic. I keep it in the center of my top bar.&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ini&quot; data-lang=&quot;ini&quot;&gt;&lt;span class=&quot;na&quot;&gt;tray-position&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;center&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;tray-padding&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;3&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;tray-background&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;${color.bg}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ini&quot; data-lang=&quot;ini&quot;&gt;&lt;span class=&quot;na&quot;&gt;tray-padding&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;3&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-background&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;${color.bg}&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-detached&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;false&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-maxsize&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;6&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-offset-x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;0&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-offset-y&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;0&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-padding&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;0&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-scale&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;1.0&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;[bar/top]&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;bar/main&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-position&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;center&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;[bar/bottom]&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;bar/main&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;bottom&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;true&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;tray-position&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;none&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;At the beginning of the user level section, I briefly mentioned the use of &lt;code&gt;polybarOpts&lt;/code&gt; as an option to &lt;code&gt;xsession.initExtra&lt;/code&gt;.  This is how it is defined.&lt;/p&gt;
 

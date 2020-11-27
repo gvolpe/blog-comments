@@ -156,11 +156,10 @@
     <span class="ss">extraConfig =</span> bars <span class="o">+</span> colors <span class="o">+</span> mods1 <span class="o">+</span> mods2 <span class="o">+</span> mpris <span class="o">+</span> xmonad<span class="p">;</span>
     <span class="ss">script =</span> <span class="s1">&#39;&#39;</span>
 <span class="s1">      polybar top &amp;</span>
-<span class="s1">      </span><span class="si">${</span>pkgs<span class="o">.</span>coreutils<span class="si">}</span><span class="s1">/bin/sleep 1</span>
 <span class="s1">      polybar bottom &amp;</span>
 <span class="s1">    &#39;&#39;</span><span class="p">;</span>
   <span class="p">};</span>
-<span class="p">}</span></code></pre></div> <p>As mentioned above, I’m running two different bars, as the <code>script</code> section shows. I introduced a delay of one second to make sure the system tray gets placed at the top. I couldn’t find a way to manage the tray independently, unfortunately.</p> <p>For the XMonad integration, we only need to add <code>[module/xmonad]</code>. If we were not using Nix, this could have been defined in the INI files but since we are on NixOS, we do it properly by referencing the binary we want to run from this module, which is <code>xmonad-log</code>. We also need to do our part in our XMonad configuration, to make sure it sends out information via DBus.</p> <p>This is most of the code. You can find the complete configuration on my <a href="https://github.com/gvolpe/nix-config/blob/master/home/programs/xmonad/config.hs">Github</a>.</p> <div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="nf">mkDbusClient</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="kt">D</span><span class="o">.</span><span class="kt">Client</span>
+<span class="p">}</span></code></pre></div> <p>As mentioned above, I’m running two different bars, as the <code>script</code> section shows.</p> <p>For the XMonad integration, we only need to add <code>[module/xmonad]</code>. If we were not using Nix, this could have been defined in the INI files but since we are on NixOS, we do it properly by referencing the binary we want to run from this module, which is <code>xmonad-log</code>. We also need to do our part in our XMonad configuration, to make sure it sends out information via DBus.</p> <p>This is most of the code. You can find the complete configuration on my <a href="https://github.com/gvolpe/nix-config/blob/master/home/programs/xmonad/config.hs">Github</a>.</p> <div class="highlight"><pre><code class="language-haskell" data-lang="haskell"><span class="nf">mkDbusClient</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="kt">D</span><span class="o">.</span><span class="kt">Client</span>
 <span class="nf">mkDbusClient</span> <span class="ow">=</span> <span class="kr">do</span>
   <span class="n">dbus</span> <span class="ow">&lt;-</span> <span class="kt">D</span><span class="o">.</span><span class="n">connectSession</span>
   <span class="kt">D</span><span class="o">.</span><span class="n">requestName</span> <span class="n">dbus</span> <span class="p">(</span><span class="kt">D</span><span class="o">.</span><span class="n">busName_</span> <span class="s">&quot;org.xmonad.log&quot;</span><span class="p">)</span> <span class="n">opts</span>
@@ -256,9 +255,23 @@
     <span class="ss">shadow =</span> <span class="no">true</span><span class="p">;</span>
     <span class="ss">shadowOpacity =</span> <span class="s2">&quot;0.75&quot;</span><span class="p">;</span>
   <span class="p">};</span>
-<span class="p">}</span></code></pre></div> <h3 id="system-tray">System tray</h3> <p>If you use programs like Slack or Telegram, you might appreciate a system tray for them. This is something we also need to take care about. When using XMobar or Taffybar, people usually go for <a href="http://stalonetray.sourceforge.net/">standalonetray</a>, which is fairly basic. Conversely, Polybar users don’t need to worry about it as it comes with a nice system tray by default.</p> <p>The configuration for my system tray is fairly basic. I like to keep it in the center of my top bar.</p> <div class="highlight"><pre><code class="language-ini" data-lang="ini"><span class="na">tray-position</span> <span class="o">=</span> <span class="s">center</span>
-<span class="na">tray-padding</span> <span class="o">=</span> <span class="s">3</span>
-<span class="na">tray-background</span> <span class="o">=</span> <span class="s">${color.bg}</span></code></pre></div> <p>At the beginning of the user level section, I briefly mentioned the use of <code>polybarOpts</code> as an option to <code>xsession.initExtra</code>. This is how it is defined.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="ss">polybarOpts =</span> <span class="s1">&#39;&#39;</span>
+<span class="p">}</span></code></pre></div> <h3 id="system-tray">System tray</h3> <p>If you use programs like Slack or Telegram, you might appreciate a system tray for them. This is something we also need to take care about. When using XMobar or Taffybar, people usually go for <a href="http://stalonetray.sourceforge.net/">standalonetray</a>, which is fairly basic. Conversely, Polybar users don’t need to worry about it as it comes with a nice system tray by default.</p> <p>The configuration for my system tray is fairly basic. I keep it in the center of my top bar.</p> <div class="highlight"><pre><code class="language-ini" data-lang="ini"><span class="na">tray-padding</span> <span class="o">=</span> <span class="s">3</span>
+<span class="na">tray-background</span> <span class="o">=</span> <span class="s">${color.bg}</span>
+<span class="na">tray-detached</span> <span class="o">=</span> <span class="s">false</span>
+<span class="na">tray-maxsize</span> <span class="o">=</span> <span class="s">6</span>
+<span class="na">tray-offset-x</span> <span class="o">=</span> <span class="s">0</span>
+<span class="na">tray-offset-y</span> <span class="o">=</span> <span class="s">0</span>
+<span class="na">tray-padding</span> <span class="o">=</span> <span class="s">0</span>
+<span class="na">tray-scale</span> <span class="o">=</span> <span class="s">1.0</span>
+
+<span class="k">[bar/top]</span>
+<span class="na">inherit</span> <span class="o">=</span> <span class="s">bar/main</span>
+<span class="na">tray-position</span> <span class="o">=</span> <span class="s">center</span>
+
+<span class="k">[bar/bottom]</span>
+<span class="na">inherit</span> <span class="o">=</span> <span class="s">bar/main</span>
+<span class="na">bottom</span> <span class="o">=</span> <span class="s">true</span>
+<span class="na">tray-position</span> <span class="o">=</span> <span class="s">none</span></code></pre></div> <p>At the beginning of the user level section, I briefly mentioned the use of <code>polybarOpts</code> as an option to <code>xsession.initExtra</code>. This is how it is defined.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="ss">polybarOpts =</span> <span class="s1">&#39;&#39;</span>
 <span class="s1">  nitrogen --restore &amp;</span>
 <span class="s1">  pasystray &amp;</span>
 <span class="s1">  blueman-applet &amp;</span>
