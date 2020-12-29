@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Finite-State Machines + FS2 streams: A match made in heaven"
-date:   2020-12-30 18:49:00
+date:   2020-12-29 15:49:00
 categories: scala, fs2, fsm, finite state machine, streams, streaming, effects
 comments: true
 ---
