@@ -187,49 +187,35 @@ type State  = (Map[PlayerId, Agg], Count)
 
 def fsm[F[_]: Applicative](
     ticker: Ticker[F]
-): FSM[F, State, (Option[Event], Tick), Result] = {
-  def go(
-      m: Map[PlayerId, Agg],
-      count: Count,
-      playerId: PlayerId,
-      tick: Tick,
-      f: Agg => Agg
-  ): F[(State, Result)] = {
+): FSM[F, State, (Option[Event], Tick), Result] = FSM {
+  case ((m, count), (Some(event), tick)) =>
+    val (playerId, modifier) =
+      event match {
+        case Event.LevelUp(pid, level, _) =>
+          pid -> _Points.modify(_ + 100).andThen(_Level.set(level))
+        case Event.PuzzleSolved(pid, _, _, _) =>
+          pid -> _Points.modify(_ + 50)
+        case Event.GemCollected(pid, gemType, _) =>
+          pid -> _Points.modify(_ + 10).andThen {
+            _Gems.modify(_.updatedWith(gemType)(_.map(_ + 1).orElse(Some(1))))
+          }
+      }
     val agg = m.getOrElse(playerId, Agg.empty)
-    val out = m.updated(playerId, f(agg))
+    val out = m.updated(playerId, modifier(agg))
     val nst = if (tick === Tick.On) Map.empty[PlayerId, Agg] else out
 
     ticker.merge(tick, count).map {
       case (newTick, newCount) =>
         (nst -> newCount) -> (out -> newTick)
     }
-  }
-
-  FSM {
-    case ((m, count), (Some(event), tick)) =>
-      val (playerId, modifier) =
-        event match {
-          case Event.LevelUp(pid, level, _) =>
-            pid -> _Points.modify(_ + 100).andThen(_Level.set(level))
-          case Event.PuzzleSolved(pid, _, _, _) =>
-            pid -> _Points.modify(_ + 50)
-          case Event.GemCollected(pid, gemType, _) =>
-            pid -> _Points.modify(_ + 10).andThen {
-              _Gems.modify(_.updatedWith(gemType)(_.map(_ + 1).orElse(Some(1))))
-            }
-        }
-      go(m, count, playerId, tick, modifier)
-    case ((m, _), (None, _)) =>
-      F.pure((Map.empty -> 0) -> (m -> Tick.On))
-  }
+  case ((m, _), (None, _)) =>
+    F.pure((Map.empty -> 0) -> (m -> Tick.On))
 }
 {% endhighlight %}
 
-You can ignore the `ticker` part for now, only know that it's managing the ticks either by time-window or a certain number of processed events. We will get into the `Ticker` implementation soon.
+Focus on the state transitions. In the first case, we get `Some(event)` and then proceed to pattern-match on the `Event`. We increase the points accordingly, and in specific cases, we modify some other properties. Lastly, we emit the new state and ouput. You can ignore the `ticker.merge` part for now, only know that it's managing the ticks either by time-window or a certain number of processed events. We will get into the `Ticker` implementation soon.
 
-Instead, focus on the state transitions defined within `FSM { ... }`. In the first case, we get `Some(event)` and then proceed to pattern-match on the `Event`. We increase the points accordingly, and in specific cases, we modify some other properties.
-
-Now the last case requires a bit more of explanation. Because the input type of our FSM is `(Option[Event], Tick)`, we need to consider the `None` case, which means our input data has come to an end (more on this soon).
+The last case requires a bit more of explanation. Because the input type of our FSM is `(Option[Event], Tick)`, we need to consider the `None` case, which means our input data has come to an end in a streaming context (more on this soon).
 
 A great property of finite-state machines is that they contain pure logic and can be tested in isolation. So let's do that first before moving on.
 
