@@ -6,7 +6,7 @@ categories: scala, fs2, fsm, finite state machine, streams, streaming, effects
 comments: true
 ---
 
-Hey there fellas! Today I'll talk about how finite-state machines and Fs2 streams are a match made in heaven. To demonstrate it, I'll make up a compelling problem to solve and we will get to the final solution step by step. Here's a sneak-peek on how that looks like.
+As the title says, finite-state machines and Fs2 streams are a match made in heaven! To demonstrate it, I'll make up a compelling problem to solve and we will get to the final solution step by step. Here's a sneak-peek of the solution.
 
 {% highlight scala %}
 trait Ticker[F[_]] {
