@@ -362,41 +362,40 @@ object Ticker {
       maxNrOfEvents: Int,
       timeWindow: FiniteDuration
   ): F[Ticker[F]] =
-    (Ref.of[F, Tick](Tick.Off), Ref.of[F, Long](0L)).mapN {
-      case (ref, lastTickRef) =>
-        new Ticker[F] {
-          def get: F[Tick] = ref.get
+    Ref.of[F, Tick](Tick.Off).map { ref =>
+      new Ticker[F] {
+        def get: F[Tick] = ref.get
 
-          def merge(timerTick: Tick, count: Count): F[(Tick, Count)] =
-            ref
-              .modify {
-                case Tick.Off if count === maxNrOfEvents => Tick.On  -> 0
-                case _ if timerTick === Tick.On          => Tick.Off -> 0
-                case _                                   => Tick.Off -> (count + 1)
+        def merge(timerTick: Tick, count: Count): F[(Tick, Count)] =
+          ref
+            .modify {
+              case Tick.Off if count === maxNrOfEvents => Tick.On  -> 0
+              case _ if timerTick === Tick.On          => Tick.Off -> 0
+              case _                                   => Tick.Off -> (count + 1)
+            }
+            .flatMap { newCount =>
+              get.map { counterTick =>
+                val newTick = counterTick |+| timerTick
+                newTick -> newCount
               }
-              .flatMap { newCount =>
-                get.map { counterTick =>
-                  val newTick = counterTick |+| timerTick
-                  newTick -> newCount
-                }
-              }
+            }
 
-          def ticks: Stream[F, Tick] = {
-            val duration = timeWindow.toNanos
-            val interval = FiniteDuration((timeWindow.toSeconds * 0.05).toLong, SECONDS)
+        def ticks: Stream[F, Tick] = {
+          val duration = timeWindow.toNanos
+          val interval = FiniteDuration((timeWindow.toSeconds * 0.05).toLong, SECONDS)
 
-            def go(lastSpikeNanos: Long): Stream[F, Tick] =
-              Stream.eval((F.monotonic(NANOSECONDS), get, lastTickRef.get).tupled).flatMap {
-                case (now, tick, lastTick) =>
-                  if ((now - lastSpikeNanos) > duration || (tick === Tick.On && (now - lastTick) > interval.toNanos))
-                    Stream.eval(lastTickRef.set(now)).as(Tick.On) ++ go(now)
-                  else Stream.emit(Tick.Off) ++ go(lastSpikeNanos)
-              }
+          def go(lastSpikeNanos: Long, lastTick: Long): Stream[F, Tick] =
+            Stream.eval((F.monotonic(NANOSECONDS), get).tupled).flatMap {
+              case (now, tick) =>
+                if ((now - lastSpikeNanos) > duration || (tick === Tick.On && (now - lastTick) > interval.toNanos))
+                  Stream.emit(Tick.On) ++ go(now, now)
+                else Stream.emit(Tick.Off) ++ go(lastSpikeNanos, lastTick)
+            }
 
-            go(0).tail
-          }
-
+          go(0, 0).tail
         }
+
+      }
     }
 }
 {% endhighlight %}
