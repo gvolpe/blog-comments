@@ -346,7 +346,7 @@ object Tick {
 
 #### Ticker
 
-Fs2 provides a function named [every](https://github.com/typelevel/fs2/blob/v2.5.0/core/shared/src/main/scala/fs2/Stream.scala#L3187), which constantly emits a tick expressed as a `boolean`. Whenever the specified duration is reached, it evaluates to `true`. Otherwise, it evaluates to `false`. However, we can't make use of it because we also need to consider the number of events processed. Whatever happens first, both the tick's timer and the events counter need to be reseted. Here's where our custom `Ticker` comes into play.
+Fs2 provides a function named [every](https://github.com/typelevel/fs2/blob/v2.5.0/core/shared/src/main/scala/fs2/Stream.scala#L3187), which constantly emits a tick expressed as a `boolean`. Whenever the specified duration is reached, it evaluates to `true`. Otherwise, it evaluates to `false`. However, we can't make use of it because we also need to consider the number of events that have been processed so far. Whatever happens first, both the tick's timer and the events counter need to be reseted. Here's where our custom `Ticker` comes into play.
 
 {% highlight scala %}
 trait Ticker[F[_]] {
