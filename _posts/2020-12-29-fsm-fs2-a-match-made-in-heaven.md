@@ -3,7 +3,7 @@ layout: post
 title:  "Finite-State Machines + FS2 streams: A match made in heaven"
 date:   2020-12-29 15:49:00
 categories: scala, fs2, fsm, finite state machine, streams, streaming, effects
-comments: true
+github_comments_issueid: "11"
 ---
 
 As the title says, finite-state machines and Fs2 streams are a match made in heaven! To demonstrate it, I'll make up a compelling problem to solve and we will get to the final solution step by step. Here's a sneak-peek of the solution.

@@ -3,7 +3,7 @@ layout: post
 title:  "Gnome 3 on NixOS"
 date:   2020-07-01 21:58:00
 categories: nix, nixos, gnome, linux, dconf, home-manager
-comments: true
+github_comments_issueid: "9"
 ---
 
 [NixOS](https://nixos.org/) can be configured to run any desktop environment you want and [Gnome 3](https://www.gnome.org/gnome-3/) is not an exception. However, it comes with some caveats so keep reading if you are interested in making this duo work seamlessly.

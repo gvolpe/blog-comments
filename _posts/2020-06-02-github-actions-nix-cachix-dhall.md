@@ -3,7 +3,7 @@ layout: post
 title:  "Github actions powered by Nix Shell & Cachix"
 date:   2020-06-02 21:58:00
 categories: ci, nix, cachix, cache, haskell, scala, nix-shell, dhall
-comments: true
+github_comments_issueid: "8"
 ---
 
 The more I learn about [Nix](https://nixos.org/nix/) - a purely functional package manager - the more I am convinced this is the way forward. Even if there's still room for big improvements.
