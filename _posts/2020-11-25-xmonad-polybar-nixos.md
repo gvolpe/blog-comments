@@ -3,7 +3,7 @@ layout: post
 title:  "XMonad + Polybar on NixOS"
 date:   2020-11-25 18:49:00
 categories: nix, nixos, xmonad, polybar, linux, statusbar, wm, windowmanager
-comments: true
+github_comments_issueid: "10"
 ---
 
 **Table of Contents**
