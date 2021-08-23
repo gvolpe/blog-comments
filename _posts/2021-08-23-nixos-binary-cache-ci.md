@@ -3,7 +3,7 @@ layout: post
 title:  "NixOS: build your system on Github actions!"
 date:   2021-08-23 21:58:00
 categories: nix, nixos, linux, ci, home-manager, ci-build, github-actions
-github_comments_issueid: "13"
+github_comments_issueid: "14"
 ---
 
 What if I told you that you can save plenty of time and CPU-power by pre-building your *entire* [NixOS](https://nixos.org/) configuration on Github actions? Fresh installations could be super fast and pre-validated on a CI build!
