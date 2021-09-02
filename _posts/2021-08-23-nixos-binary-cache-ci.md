@@ -76,13 +76,33 @@ The [nix-build-uncached](https://github.com/Mic92/nix-build-uncached) command sa
 
 It mostly accepts the same arguments as `nix-build`, so you can use it wherever you use the former. If you're familiar with it, you know it needs a `default.nix` at the root directory, if no file name is indicated. This is where it gets interesting, because we usually build our home configuration by running `home-manager switch`, so there's no such file!
 
-Fortunately for us, it is possible to get a derivation out of Home Manager in the following way.
+Fortunately for us, it is possible to get a derivation out of Home Manager. First of all, we define a `default.nix` with two attributes.
 
-{% highlight yaml %}
-{ pkgs ? import <nixpkgs> {} }:
+{% highlight nix %}
+{ pkgs ? import <nixpkgs> {
+    config = { allowUnfree = true; };
+  }
+}:
+
+{
+  home = pkgs.callPackage ./home {};
+  system = pkgs.callPackage ./system {};
+}
+{% endhighlight %}
+
+This will allow us to build all the attributes, or just the one we are interested in. E.g.
+
+{% highlight bash %}
+nix-build-uncached -A home
+{% endhighlight %}
+
+At last, here's the derivation for Home Manager, placed under `home/default.nix`:
+
+{% highlight nix %}
+{ pkgs }:
 
 let
-  hm_url = pkgs.lib.strings.removeSuffix "\n" (builtins.readFile ./pinned/home-manager);
+  hm_url = pkgs.lib.fileContents ../pinned/home-manager;
 
   home-manager = builtins.fetchTarball {
     name   = "home-manager-2021-08-21";
@@ -92,11 +112,18 @@ let
 
   evalHome = import "${toString home-manager}/modules";
 in
-  evalHome {
-    configuration = ./home/home.nix;
-    lib = pkgs.lib;
-    pkgs = pkgs;
-  }
+{
+  home-config = pkgs.lib.recurseIntoAttrs (
+    evalHome {
+      configuration = ./home.nix;
+      lib = pkgs.lib;
+      pkgs = pkgs;
+    }
+  );
+
+  # Allow nix to recurse into this attribute set to look for derivations
+  recurseForDerivations = true;
+}
 {% endhighlight %}
 
 The `pinned/home-manager` file is similar to the `pinned/nixpkgs` file, except it points to a specific Home Manager tarball.
@@ -116,12 +143,16 @@ The steps are pretty similar, except there is no need to set the priority flag f
   run: ./build.sh ci-system
 {% endhighlight %}
 
-That script runs the following command:
+Next we have the derivation for the system part, defined under `system/default.nix`:
 
-{% highlight bash %}
-nix-build-uncached '<nixpkgs/nixos>' \
- -I nixos-config=system/configuration.nix \
- -A system
+{% highlight nix %}
+{ pkgs }:
+
+{
+  system = pkgs.lib.recurseIntoAttrs (
+    pkgs.nixos [ ./configuration.nix ]
+  );
+}
 {% endhighlight %}
 
 ### Conclusion
