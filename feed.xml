@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 23 Aug 2021 14:32:44 +0000</pubDate>
-    <lastBuildDate>Mon, 23 Aug 2021 14:32:44 +0000</lastBuildDate>
+    <pubDate>Thu, 02 Sep 2021 10:01:00 +0000</pubDate>
+    <lastBuildDate>Thu, 02 Sep 2021 10:01:00 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -75,26 +75,49 @@
 
 &lt;p&gt;It mostly accepts the same arguments as &lt;code&gt;nix-build&lt;/code&gt;, so you can use it wherever you use the former. If you’re familiar with it, you know it needs a &lt;code&gt;default.nix&lt;/code&gt; at the root directory, if no file name is indicated. This is where it gets interesting, because we usually build our home configuration by running &lt;code&gt;home-manager switch&lt;/code&gt;, so there’s no such file!&lt;/p&gt;
 
-&lt;p&gt;Fortunately for us, it is possible to get a derivation out of Home Manager in the following way.&lt;/p&gt;
+&lt;p&gt;Fortunately for us, it is possible to get a derivation out of Home Manager. First of all, we define a &lt;code&gt;default.nix&lt;/code&gt; with two attributes.&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;p-Indicator&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;pkgs&lt;/span&gt; &lt;span class=&quot;p-Indicator&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;import &amp;lt;nixpkgs&amp;gt;&lt;/span&gt; &lt;span class=&quot;p-Indicator&quot;&gt;{}&lt;/span&gt; &lt;span class=&quot;p-Indicator&quot;&gt;}:&lt;/span&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; pkgs &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;&amp;lt;nixpkgs&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;config =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;allowUnfree =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
 
-&lt;span class=&quot;l-Scalar-Plain&quot;&gt;let&lt;/span&gt;
-  &lt;span class=&quot;l-Scalar-Plain&quot;&gt;hm_url = pkgs.lib.strings.removeSuffix &amp;quot;\n&amp;quot; (builtins.readFile ./pinned/home-manager);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;home =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;callPackage &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/home&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{};&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;callPackage &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/system&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-  &lt;span class=&quot;l-Scalar-Plain&quot;&gt;home-manager = builtins.fetchTarball {&lt;/span&gt;
-    &lt;span class=&quot;l-Scalar-Plain&quot;&gt;name   = &amp;quot;home-manager-2021-08-21&amp;quot;;&lt;/span&gt;
-    &lt;span class=&quot;l-Scalar-Plain&quot;&gt;url    = hm_url;&lt;/span&gt;
-    &lt;span class=&quot;l-Scalar-Plain&quot;&gt;sha256 = &amp;quot;0s8nlgrf16bz2bhnk0xrzvivagq55cifxf2p545c7n4zj9ryfkkp&amp;quot;;&lt;/span&gt;
-  &lt;span class=&quot;l-Scalar-Plain&quot;&gt;};&lt;/span&gt;
+&lt;p&gt;This will allow us to build all the attributes, or just the one we are interested in. E.g.&lt;/p&gt;
 
-  &lt;span class=&quot;l-Scalar-Plain&quot;&gt;evalHome = import &amp;quot;${toString home-manager}/modules&amp;quot;;&lt;/span&gt;
-&lt;span class=&quot;l-Scalar-Plain&quot;&gt;in&lt;/span&gt;
-  &lt;span class=&quot;l-Scalar-Plain&quot;&gt;evalHome {&lt;/span&gt;
-    &lt;span class=&quot;l-Scalar-Plain&quot;&gt;configuration = ./home/home.nix;&lt;/span&gt;
-    &lt;span class=&quot;l-Scalar-Plain&quot;&gt;lib = pkgs.lib;&lt;/span&gt;
-    &lt;span class=&quot;l-Scalar-Plain&quot;&gt;pkgs = pkgs;&lt;/span&gt;
-  &lt;span class=&quot;l-Scalar-Plain&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;nix-build-uncached -A home&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;At last, here’s the derivation for Home Manager, placed under &lt;code&gt;home/default.nix&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; pkgs &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;hm_url =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;fileContents &lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/pinned/home-manager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;home-manager =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;builtins&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;fetchTarball &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;name   =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;home-manager-2021-08-21&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;url    =&lt;/span&gt; hm_url&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;sha256 =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;0s8nlgrf16bz2bhnk0xrzvivagq55cifxf2p545c7n4zj9ryfkkp&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;evalHome =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;toString&lt;/span&gt; home-manager&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/modules&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;home-config =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;recurseIntoAttrs &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+    evalHome &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;configuration =&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/home.nix&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;lib =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+  &lt;span class=&quot;c1&quot;&gt;# Allow nix to recurse into this attribute set to look for derivations&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;recurseForDerivations =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The &lt;code&gt;pinned/home-manager&lt;/code&gt; file is similar to the &lt;code&gt;pinned/nixpkgs&lt;/code&gt; file, except it points to a specific Home Manager tarball.&lt;/p&gt;
 
@@ -111,11 +134,15 @@
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Build&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;NixOS&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;config&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;❄️&amp;quot;&lt;/span&gt;
   &lt;span class=&quot;l-Scalar-Plain&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l-Scalar-Plain&quot;&gt;./build.sh ci-system&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;That script runs the following command:&lt;/p&gt;
+&lt;p&gt;Next we have the derivation for the system part, defined under &lt;code&gt;system/default.nix&lt;/code&gt;:&lt;/p&gt;
 
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;nix-build-uncached &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;lt;nixpkgs/nixos&amp;gt;&amp;#39;&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
- -I nixos-config&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;system/configuration.nix &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
- -A system&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; pkgs &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;recurseIntoAttrs &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+    pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixos &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/configuration.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h3 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h3&gt;
 
