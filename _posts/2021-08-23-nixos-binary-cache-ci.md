@@ -152,6 +152,8 @@ Next we have the derivation for the system part, defined under `system/default.n
   system = pkgs.lib.recurseIntoAttrs (
     pkgs.nixos [ ./configuration.nix ]
   );
+
+  recurseForDerivations = true;
 }
 {% endhighlight %}
 
