@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 02 Sep 2021 10:01:00 +0000</pubDate>
-    <lastBuildDate>Thu, 02 Sep 2021 10:01:00 +0000</lastBuildDate>
+    <pubDate>Fri, 03 Sep 2021 08:34:53 +0000</pubDate>
+    <lastBuildDate>Fri, 03 Sep 2021 08:34:53 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -142,6 +142,8 @@
   &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;recurseIntoAttrs &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
     pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixos &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/configuration.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
   &lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;recurseForDerivations =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h3 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h3&gt;
