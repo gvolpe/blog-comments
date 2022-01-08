@@ -1,4 +1,5 @@
 name: Blog
+
 on:
   pull_request: {}
   push:
@@ -11,9 +12,9 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2.1.0
-      - uses: cachix/install-nix-action@v12
-      - uses: cachix/cachix-action@v8
+      - uses: cachix/install-nix-action@v16
+      - uses: cachix/cachix-action@v10
         with:
           name: gvolpe-blog
           signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
-      - run: nix-shell --run "bundle install && bundle exec jekyll build"
+      - run: nix develop -c bundle exec jekyll build
