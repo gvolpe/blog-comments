@@ -1,0 +1,116 @@
+<!DOCTYPE html> <html lang="en-uk"> <head> <meta charset="utf-8"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title> Flakes: NixOS and Home Manager migration &bull; gvolpe's blog </title> <meta name="description" content="Table of contents"> <link rel="stylesheet" href="/blog/css/main.css"> <link rel="canonical" href="https://gvolpe.github.io/blog/nix-flakes/"> <link rel="alternate" type="application/rss+xml" title="gvolpe's blog" href="https://gvolpe.github.io/blog/feed.xml" /> <!-- Global site tag (gtag.js) - Google Analytics --> <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142604198-1"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-142604198-1'); </script> <!-- -<script type="text/javascript"> -var _gaq = _gaq || []; -_gaq.push(['_setAccount', 'UA-142604198-1']); -_gaq.push(['_trackPageview']); - -(function() { - var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true; - ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js'; - var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s); -})(); -</script> --> </head> <body class="single"> <main class="main"> <header class="header"> <div class="overlay"> <div class="container"> <h1 class="title"> <a href="/blog/">gvolpe's blog</a> </h1> <nav class="navbar"> <a href="#" class="menu-icon"> <span></span> <span></span> <span></span> </a> <ul class="nav"> <li><a href="https://gvolpe.com" target="_blank">Website</a></li> </ul> </nav> </div> </div> </header> <article class="post container card"> <header class="post-header"> <h1 class="post-title">Flakes: NixOS and Home Manager migration</h1> <span class="post-meta"> <time class="post-date" datetime="2022-01-10">Jan 10, 2022</time> <span class="post-author">by Gabriel Volpe</span> </span> </header> <div class="post-content"> <h3 id="table-of-contents">Table of contents</h3> <ul> <li><a href="#introduction">Introduction</a></li> <li><a href="#how-it-started-nixos">How it started: NixOS</a></li> <li><a href="#next-step-home-manager">Next step: Home Manager</a> <ul> <li><a href="#one-flake-to-rule-them-all">One flake to rule them all!</a></li> <li><a href="#home-manager-flake-output">Home Manager flake output</a></li> <li><a href="#switching-configurations">Switching configurations</a></li> </ul> </li> <li><a href="#flake-outputs">Flake outputs</a></li> <li><a href="#conclusion">Conclusion</a></li> </ul> <h3 id="introduction">Introduction</h3> <p>I have recently migrated my entire NixOS and Home Manager (HM) <a href="https://github.com/gvolpe/nix-config">configuration</a> — including programs, services, dotfiles, etc — over to the new kid on the block: <a href="https://nixos.wiki/wiki/Flakes">Nix flakes</a>.</p> <p>It was not as difficult as I thought it would be but there were a lot of things I had to figure out on my own or by asking more experienced folks on the NixOS matrix channel.</p> <p>So let me tell you the important bits of this migration story in this short blog post ;)</p> <h3 id="how-it-started-nixos">How it started: NixOS</h3> <p>I initially had my NixOS configuration under the <code>system</code> directory and my Home Manager configuration under <code>home</code>, as you can see in the Github repo. So I decided to do the migration step by step, starting with the former.</p> <p>I created a <code>flake.nix</code> file under <code>/etc/nixos</code> with the following content.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">description =</span> <span class="s2">&quot;NixOS configuration&quot;</span><span class="p">;</span>
+
+  inputs<span class="o">.</span>nixpkgs<span class="o">.</span><span class="ss">url =</span> <span class="s2">&quot;nixpkgs/nixos-unstable&quot;</span><span class="p">;</span>
+
+  <span class="ss">outputs =</span> inputs <span class="p">@</span> <span class="p">{</span> self<span class="p">,</span> nixpkgs <span class="p">}:</span>
+    <span class="k">let</span> <span class="ss">system =</span> <span class="s2">&quot;x86_64-linux&quot;</span><span class="p">;</span> <span class="k">in</span> <span class="p">{</span>
+      <span class="ss">nixosConfigurations =</span> <span class="p">{</span>
+        <span class="ss">tongfang-amd =</span> nixpkgs<span class="o">.</span>lib<span class="o">.</span>nixosSystem <span class="p">{</span>
+          <span class="k">inherit</span> system<span class="p">;</span>
+          <span class="ss">specialArgs =</span> <span class="p">{</span> <span class="k">inherit</span> inputs<span class="p">;</span> <span class="p">};</span>
+          <span class="ss">modules =</span> <span class="p">[</span>
+            <span class="o">.</span><span class="l">/machine/tongfang-amd</span>
+            <span class="o">.</span><span class="l">/configuration.nix</span>
+          <span class="p">];</span>
+        <span class="p">};</span>
+      <span class="p">};</span>
+    <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>I could then build my system using this flake! Easy, right?</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>sudo nixos-rebuild switch --flake .#tongfang-amd</code></pre></div> <p>The only downside of using <code>nixos-rebuild</code> is that the configuration is expected to be under <code>/etc/nixos</code>. However, it turns out this flake can also be built via <code>nix build</code> from anywhere else!</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix build .#nixosConfigurations.tongfang-amd.config.system.build.toplevel
+<span class="nv">$ </span>sudo result/bin/switch-to-configuration switch</code></pre></div> <p>If I’m not mistaken (I haven’t tried it on a fresh install yet), we can switch the system configuration from any directory by using this command!</p> <p>That’s handy if you keep all your configurations in a single directory and these are tracked by a version control system (VCS) such as git.</p> <h3 id="next-step-home-manager">Next step: Home Manager</h3> <p>This was not as straightforward, as my HM configuration is a bit complex, but doable nonetheless. In the same way, I started creating a <code>flake.nix</code> under the <code>home</code> directory but I quickly realized having two different flakes for a single machine is not ideal.</p> <p>However, since both the NixOS and HM configurations can be built from anywhere (no need to be under <code>/etc/nixos</code> and <code>$HOME/.config/nixpkgs</code>, respectively), I went with a single <code>flake.nix</code> where both the NixOS and HM configurations live (importing modules to make it more readable, of course).</p> <p>A nice property of having a single flake, is that we can find out all the pinned versions by looking at the <code>flake.lock</code> file. We also get to manage everything from a single <code>nix flake</code> command.</p> <h4 id="one-flake-to-rule-them-all">One flake to rule them all!</h4> <p>So here’s the only <code>flake.nix</code> that contains both NixOS and HM configurations.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">description =</span> <span class="s2">&quot;Home Manager (dotfiles) and NixOS configurations&quot;</span><span class="p">;</span>
+
+  <span class="ss">inputs =</span> <span class="p">{</span>
+    nixpkgs<span class="o">.</span><span class="ss">url =</span> <span class="s2">&quot;nixpkgs/nixos-unstable&quot;</span><span class="p">;</span>
+
+    <span class="ss">nurpkgs =</span> <span class="p">{</span>
+      <span class="ss">url =</span> <span class="l">github:nix-community/NUR</span><span class="p">;</span>
+      inputs<span class="o">.</span>nixpkgs<span class="o">.</span><span class="ss">follows =</span> <span class="s2">&quot;nixpkgs&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="ss">home-manager =</span> <span class="p">{</span>
+      <span class="ss">url =</span> <span class="l">github:nix-community/home-manager</span><span class="p">;</span>
+      inputs<span class="o">.</span>nixpkgs<span class="o">.</span><span class="ss">follows =</span> <span class="s2">&quot;nixpkgs&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="ss">tex2nix =</span> <span class="p">{</span>
+      <span class="ss">url =</span> <span class="l">github:Mic92/tex2nix/4b17bc0</span><span class="p">;</span>
+      inputs<span class="o">.</span>utils<span class="o">.</span><span class="ss">follows =</span> <span class="s2">&quot;nixpkgs&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+
+  <span class="ss">outputs =</span> inputs <span class="p">@</span> <span class="p">{</span> self<span class="p">,</span> nixpkgs<span class="p">,</span> nurpkgs<span class="p">,</span> home-manager<span class="p">,</span> tex2nix <span class="p">}:</span>
+    <span class="k">let</span>
+      <span class="ss">system =</span> <span class="s2">&quot;x86_64-linux&quot;</span><span class="p">;</span>
+    <span class="k">in</span>
+    <span class="p">{</span>
+      <span class="ss">homeConfigurations =</span> <span class="p">(</span>
+        <span class="nb">import</span> <span class="o">.</span><span class="l">/outputs/home-conf.nix</span> <span class="p">{</span>
+          <span class="k">inherit</span> system nixpkgs nurpkgs home-manager tex2nix<span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">);</span>
+
+      <span class="ss">nixosConfigurations =</span> <span class="p">(</span>
+        <span class="nb">import</span> <span class="o">.</span><span class="l">/outputs/nixos-conf.nix</span> <span class="p">{</span>
+          <span class="k">inherit</span> <span class="p">(</span>nixpkgs<span class="p">)</span> lib<span class="p">;</span>
+          <span class="k">inherit</span> inputs system<span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">);</span>
+
+      devShell<span class="o">.</span><span class="err">$</span><span class="p">{</span>system<span class="p">}</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">import</span> <span class="o">.</span><span class="l">/outputs/installation.nix</span> <span class="p">{</span>
+          <span class="k">inherit</span> system nixpkgs<span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">);</span>
+    <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>It consists of a set of inputs and a set of outputs.</p> <p>To make things more readable, I moved the corresponding configurations to the <code>outputs</code> directory. So the NixOS configuration now lives under <code>outputs/nixos-conf.nix</code>, and so on.</p> <h4 id="you-can-skip-this-installation-shell">You can skip this: installation shell</h4> <p>There is also a <code>devShell</code> with two packages that I use for a fresh installation for custom build script, but that’s quite personal so feel free to skip this part.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> system<span class="p">,</span> nixpkgs <span class="p">}:</span>
+
+<span class="k">let</span>
+  <span class="ss">pkgs =</span> nixpkgs<span class="o">.</span>legacyPackages<span class="o">.</span><span class="err">$</span><span class="p">{</span>system<span class="p">};</span>
+<span class="k">in</span>
+pkgs<span class="o">.</span>mkShell <span class="p">{</span>
+  <span class="ss">name =</span> <span class="s2">&quot;installation-shell&quot;</span><span class="p">;</span>
+  <span class="ss">buildInputs =</span> <span class="k">with</span> pkgs<span class="p">;</span> <span class="p">[</span> wget s-tar <span class="p">];</span>
+<span class="p">}</span></code></pre></div> <p>What’s great is that I can enter this shell without even checking out the project.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix develop github:gvolpe/nix-config</code></pre></div> <h4 id="home-manager-flake-output">Home Manager flake output</h4> <p>The <code>homeConfigurations</code> is a custom flake output, which is not recognized by Nix flakes, so when we try to display it, it shows “unknown” as a description but this will probably be supported in the future.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix flake show <span class="p">|</span> rg homeConfigurations
+├───homeConfigurations: unknown</code></pre></div> <p>So what’s in the <code>outputs/home-conf.nix</code>? A basic HM configuration might look as follows.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> system<span class="p">,</span> nixpkgs<span class="p">,</span> nurpkgs<span class="p">,</span> home-manager<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="k">let</span>
+  <span class="ss">username =</span> <span class="s2">&quot;gvolpe&quot;</span><span class="p">;</span>
+  <span class="ss">homeDirectory =</span> <span class="s2">&quot;/home/</span><span class="si">${</span>username<span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span>
+  <span class="ss">configHome =</span> <span class="s2">&quot;</span><span class="si">${</span>homeDirectory<span class="si">}</span><span class="s2">/.config&quot;</span><span class="p">;</span>
+
+  <span class="ss">pkgs =</span> <span class="nb">import</span> nixpkgs <span class="p">{</span>
+    <span class="k">inherit</span> system<span class="p">;</span>
+    config<span class="o">.</span><span class="ss">allowUnfree =</span> <span class="no">true</span><span class="p">;</span>
+    config<span class="o">.</span>xdg<span class="o">.</span><span class="ss">configHome =</span> configHome<span class="p">;</span>
+    <span class="ss">overlays =</span> <span class="p">[</span> nurpkgs<span class="o">.</span>overlay <span class="p">];</span>
+  <span class="p">};</span>
+
+  <span class="ss">nur =</span> <span class="nb">import</span> nurpkgs <span class="p">{</span>
+    <span class="k">inherit</span> pkgs<span class="p">;</span>
+    <span class="ss">nurpkgs =</span> pkgs<span class="p">;</span>
+  <span class="p">};</span>
+<span class="k">in</span>
+<span class="p">{</span>
+  <span class="ss">main =</span> home-manager<span class="o">.</span>lib<span class="o">.</span>homeManagerConfiguration <span class="k">rec</span> <span class="p">{</span>
+    <span class="k">inherit</span> pkgs system username homeDirectory<span class="p">;</span>
+
+    <span class="ss">stateVersion =</span> <span class="s2">&quot;21.03&quot;</span><span class="p">;</span>
+    <span class="ss">configuration =</span> <span class="nb">import</span> <span class="o">.</span><span class="l">/home.nix</span> <span class="p">{</span>
+      <span class="k">inherit</span> nur pkgs<span class="p">;</span>
+      <span class="k">inherit</span> <span class="p">(</span>pkgs<span class="p">)</span> config lib stdenv<span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>Where <code>./home.nix</code> is your usual Home Manager configuration. From there, it will more likely get more complicated, as you will always tweak one piece or another.</p> <p>Mine looks very similar, except I have a few more overlays and two home configurations for two different displays. You can look at it directly on the Github repo to avoid repetition in here.</p> <p>The most confusing part for me was the order of evaluation in Nix (which seems to have changed?). So the overlays I had defined in <code>home.nix</code> were no longer being picked up and I had to define them at the top level.</p> <p>Also, I had to set the <code>config.xdg.configHome</code> manually when importing <code>nixpkgs</code>, which was before set in <code>home.nix</code> via the <code>xdg.enable = true;</code> attribute. I still haven’t figured out the right way to do this so I’m setting it myself, but if you do know, I’d appreciate if you let me know in the comments.</p> <h4 id="switching-configurations">Switching configurations</h4> <p>Now to apply a new configuration I was previously running <code>home-manager switch</code>. However, now I prefer to directly build the flake and run the activation script from its result.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix build .#homeConfigurations.gvolpe-hdmi.activationPackage
+<span class="nv">$ </span>result/activate</code></pre></div> <p>It is more verbose, though, so it is a good idea to have a script for this.</p> <h3 id="flake-outputs">Flake outputs</h3> <p>These are all the flake outputs I currently have (you can query the repo directly).</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix flake show github:gvolpe/nix-config
+github:gvolpe/nix-config/962a766ab98217aba249f2614592bd5513a267a9
+├───devShell
+│   └───x86_64-linux: development environment <span class="s1">&#39;installation-shelbash&#39;</span>
+├───homeConfigurations: unknown
+└───nixosConfigurations
+    ├───dell-xps: NixOS configuration
+    └───tongfang-amd: NixOS configuration</code></pre></div> <p>So far, I’m liking the flakes experience, and I only have words of gratitude for the thousands of contributors who have taken the Nix ecosystem where it is today, and it keeps on getting closer to perfection every day!</p> <h3 id="conclusion">Conclusion</h3> <p>I can only say one thing about my Nix configuration affairs: <strong>it ain’t over yet.</strong> I’m still figuring things out and learning new stuff on a daily basis, so I’m sure there will be plenty of changes in the near future, specially considering that flakes are still marked as experimental.</p> <p>Anyway, that’s all I have to say. Thanks for stopping by and have a look at my <a href="https://github.com/gvolpe/nix-config">Nix configuration files</a>, perhaps something in there helps you get that missing piece in yours :)</p> <p>Cheers, Gabriel.</p> <aside class="share"> <span>Share this: </span> <a href="http://twitter.com/share?text=Flakes: NixOS and Home Manager migration&amp;url=https://gvolpe.github.io/nix-flakes/&amp;hashtags=scala,haskell,fp&amp;via=volpegabriel87" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;"> <i class="fa fa-twitter-square"></i> </a> </aside> <div id="gh-comments"> <br/><br/> <h6>COMMENTS</h6> <div id="gh-comments-list"></div> </div> <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script> <script src="/blog/js/github-comments.js"> </script> <script type="text/javascript"> DoGithubComments ( "gvolpe/blog" , "16" ); </script> <noscript>Please enable JavaScript to view comments.</noscript> </div> </article> <footer class="footer t-center"> <div class="container"> <div class="social-icons"> <ul class="text-left"> <li><a href="https://twitter.com/volpegabriel87" target="_blank"><i class="fa fa-twitter"></i></a></li> </ul> </div> <small>&copy; 2022 All rights reserved. Made with <a href="http://jekyllrb.com" target="_blank">Jekyll</a> and <i class="icon icon-heart"></i></small> <small>by <a href="http://nandomoreira.me" target="_blank">nandomoreira.me</a></small> </div> </footer> </main> </body> </html></body></html>
+<!--
+// # Zetsu Jekyll theme - https://github.com/nandomoreriame/zetsu/
+// by nandomoreira.me
+-->

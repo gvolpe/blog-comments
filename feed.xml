@@ -5,9 +5,256 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 08 Jan 2022 15:18:58 +0000</pubDate>
-    <lastBuildDate>Sat, 08 Jan 2022 15:18:58 +0000</lastBuildDate>
+    <pubDate>Mon, 10 Jan 2022 08:49:47 +0000</pubDate>
+    <lastBuildDate>Mon, 10 Jan 2022 08:49:47 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Flakes: NixOS and Home Manager migration</title>
+        <description>&lt;h3 id=&quot;table-of-contents&quot;&gt;Table of contents&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;#introduction&quot;&gt;Introduction&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#how-it-started-nixos&quot;&gt;How it started: NixOS&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#next-step-home-manager&quot;&gt;Next step: Home Manager&lt;/a&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#one-flake-to-rule-them-all&quot;&gt;One flake to rule them all!&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#home-manager-flake-output&quot;&gt;Home Manager flake output&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#switching-configurations&quot;&gt;Switching configurations&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#flake-outputs&quot;&gt;Flake outputs&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#conclusion&quot;&gt;Conclusion&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;introduction&quot;&gt;Introduction&lt;/h3&gt;
+
+&lt;p&gt;I have recently migrated my entire NixOS and Home Manager (HM) &lt;a href=&quot;https://github.com/gvolpe/nix-config&quot;&gt;configuration&lt;/a&gt; — including programs, services, dotfiles, etc — over to the new kid on the block: &lt;a href=&quot;https://nixos.wiki/wiki/Flakes&quot;&gt;Nix flakes&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;It was not as difficult as I thought it would be but there were a lot of things I had to figure out on my own or by asking more experienced folks on the NixOS matrix channel.&lt;/p&gt;
+
+&lt;p&gt;So let me tell you the important bits of this migration story in this short blog post ;)&lt;/p&gt;
+
+&lt;h3 id=&quot;how-it-started-nixos&quot;&gt;How it started: NixOS&lt;/h3&gt;
+
+&lt;p&gt;I initially had my NixOS configuration under the &lt;code&gt;system&lt;/code&gt; directory and my Home Manager configuration under &lt;code&gt;home&lt;/code&gt;, as you can see in the Github repo. So I decided to do the migration step by step, starting with the former.&lt;/p&gt;
+
+&lt;p&gt;I created a &lt;code&gt;flake.nix&lt;/code&gt; file under &lt;code&gt;/etc/nixos&lt;/code&gt; with the following content.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;description =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;NixOS configuration&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;nixpkgs/nixos-unstable&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;outputs =&lt;/span&gt; inputs &lt;span class=&quot;p&quot;&gt;@&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; self&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; nixpkgs &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;x86_64-linux&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;nixosConfigurations =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;tongfang-amd =&lt;/span&gt; nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixosSystem &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+          &lt;span class=&quot;ss&quot;&gt;specialArgs =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+          &lt;span class=&quot;ss&quot;&gt;modules =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/machine/tongfang-amd&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/configuration.nix&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I could then build my system using this flake! Easy, right?&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo nixos-rebuild switch --flake .#tongfang-amd&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The only downside of using &lt;code&gt;nixos-rebuild&lt;/code&gt; is that the configuration is expected to be under &lt;code&gt;/etc/nixos&lt;/code&gt;. However, it turns out this flake can also be built via &lt;code&gt;nix build&lt;/code&gt; from anywhere else!&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix build .#nixosConfigurations.tongfang-amd.config.system.build.toplevel
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo result/bin/switch-to-configuration switch&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;If I’m not mistaken (I haven’t tried it on a fresh install yet), we can switch the system configuration from any directory by using this command!&lt;/p&gt;
+
+&lt;p&gt;That’s handy if you keep all your configurations in a single directory and these are tracked by a version control system (VCS) such as git.&lt;/p&gt;
+
+&lt;h3 id=&quot;next-step-home-manager&quot;&gt;Next step: Home Manager&lt;/h3&gt;
+
+&lt;p&gt;This was not as straightforward, as my HM configuration is a bit complex, but doable nonetheless. In the same way, I started creating a &lt;code&gt;flake.nix&lt;/code&gt; under the &lt;code&gt;home&lt;/code&gt; directory but I quickly realized having two different flakes for a single machine is not ideal.&lt;/p&gt;
+
+&lt;p&gt;However, since both the NixOS and HM configurations can be built from anywhere (no need to be under &lt;code&gt;/etc/nixos&lt;/code&gt; and &lt;code&gt;$HOME/.config/nixpkgs&lt;/code&gt;, respectively), I went with a single &lt;code&gt;flake.nix&lt;/code&gt; where both the NixOS and HM configurations live (importing modules to make it more readable, of course).&lt;/p&gt;
+
+&lt;p&gt;A nice property of having a single flake, is that we can find out all the pinned versions by looking at the &lt;code&gt;flake.lock&lt;/code&gt; file. We also get to manage everything from a single &lt;code&gt;nix flake&lt;/code&gt; command.&lt;/p&gt;
+
+&lt;h4 id=&quot;one-flake-to-rule-them-all&quot;&gt;One flake to rule them all!&lt;/h4&gt;
+
+&lt;p&gt;So here’s the only &lt;code&gt;flake.nix&lt;/code&gt; that contains both NixOS and HM configurations.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;description =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Home Manager (dotfiles) and NixOS configurations&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;inputs =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;nixpkgs/nixos-unstable&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;nurpkgs =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:nix-community/NUR&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;follows =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;nixpkgs&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;home-manager =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:nix-community/home-manager&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;follows =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;nixpkgs&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;tex2nix =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:Mic92/tex2nix/4b17bc0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;utils&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;follows =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;nixpkgs&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;outputs =&lt;/span&gt; inputs &lt;span class=&quot;p&quot;&gt;@&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; self&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; nixpkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; nurpkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; home-manager&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; tex2nix &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;x86_64-linux&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;homeConfigurations =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/home-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; system nixpkgs nurpkgs home-manager tex2nix&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+      &lt;span class=&quot;ss&quot;&gt;nixosConfigurations =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/nixos-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;nixpkgs&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+          &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+      devShell&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;system&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/installation.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; system nixpkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It consists of a set of inputs and a set of outputs.&lt;/p&gt;
+
+&lt;p&gt;To make things more readable, I moved the corresponding configurations to the &lt;code&gt;outputs&lt;/code&gt; directory. So the NixOS configuration now lives under &lt;code&gt;outputs/nixos-conf.nix&lt;/code&gt;, and so on.&lt;/p&gt;
+
+&lt;h4 id=&quot;you-can-skip-this-installation-shell&quot;&gt;You can skip this: installation shell&lt;/h4&gt;
+
+&lt;p&gt;There is also a &lt;code&gt;devShell&lt;/code&gt; with two packages that I use for a fresh installation for custom build script, but that’s quite personal so feel free to skip this part.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; system&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; nixpkgs &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;legacyPackages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;system&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkShell &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;name =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;installation-shell&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;buildInputs =&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;with&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; wget s-tar &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;What’s great is that I can enter this shell without even checking out the project.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix develop github:gvolpe/nix-config&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;home-manager-flake-output&quot;&gt;Home Manager flake output&lt;/h4&gt;
+
+&lt;p&gt;The &lt;code&gt;homeConfigurations&lt;/code&gt; is a custom flake output, which is not recognized by Nix flakes, so when we try to display it, it shows “unknown” as a description but this will probably be supported in the future.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake show &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; rg homeConfigurations
+├───homeConfigurations: unknown&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;So what’s in the &lt;code&gt;outputs/home-conf.nix&lt;/code&gt;? A basic HM configuration might look as follows.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; system&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; nixpkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; nurpkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; home-manager&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;username =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;gvolpe&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;homeDirectory =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;/home/&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;username&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;configHome =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;homeDirectory&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/.config&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; nixpkgs &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;allowUnfree =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;xdg&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;configHome =&lt;/span&gt; configHome&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;overlays =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; nurpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;overlay &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;nur =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; nurpkgs &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;nurpkgs =&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;main =&lt;/span&gt; home-manager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;homeManagerConfiguration &lt;span class=&quot;k&quot;&gt;rec&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; pkgs system username homeDirectory&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;stateVersion =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;21.03&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;configuration =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/home.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; nur pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;pkgs&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; config lib stdenv&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Where &lt;code&gt;./home.nix&lt;/code&gt; is your usual Home Manager configuration. From there, it will more likely get more complicated, as you will always tweak one piece or another.&lt;/p&gt;
+
+&lt;p&gt;Mine looks very similar, except I have a few more overlays and two home configurations for two different displays. You can look at it directly on the Github repo to avoid repetition in here.&lt;/p&gt;
+
+&lt;p&gt;The most confusing part for me was the order of evaluation in Nix (which seems to have changed?). So the overlays I had defined in &lt;code&gt;home.nix&lt;/code&gt; were no longer being picked up and I had to define them at the top level.&lt;/p&gt;
+
+&lt;p&gt;Also, I had to set the &lt;code&gt;config.xdg.configHome&lt;/code&gt; manually when importing &lt;code&gt;nixpkgs&lt;/code&gt;, which was before set in &lt;code&gt;home.nix&lt;/code&gt; via the &lt;code&gt;xdg.enable = true;&lt;/code&gt; attribute. I still haven’t figured out the right way to do this so I’m setting it myself, but if you do know, I’d appreciate if you let me know in the comments.&lt;/p&gt;
+
+&lt;h4 id=&quot;switching-configurations&quot;&gt;Switching configurations&lt;/h4&gt;
+
+&lt;p&gt;Now to apply a new configuration I was previously running &lt;code&gt;home-manager switch&lt;/code&gt;. However, now I prefer to directly build the flake and run the activation script from its result.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix build .#homeConfigurations.gvolpe-hdmi.activationPackage
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;result/activate&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It is more verbose, though, so it is a good idea to have a script for this.&lt;/p&gt;
+
+&lt;h3 id=&quot;flake-outputs&quot;&gt;Flake outputs&lt;/h3&gt;
+
+&lt;p&gt;These are all the flake outputs I currently have (you can query the repo directly).&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake show github:gvolpe/nix-config
+github:gvolpe/nix-config/962a766ab98217aba249f2614592bd5513a267a9
+├───devShell
+│   └───x86_64-linux: development environment &lt;span class=&quot;s1&quot;&gt;&amp;#39;installation-shelbash&amp;#39;&lt;/span&gt;
+├───homeConfigurations: unknown
+└───nixosConfigurations
+    ├───dell-xps: NixOS configuration
+    └───tongfang-amd: NixOS configuration&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;So far, I’m liking the flakes experience, and I only have words of gratitude for the thousands of contributors who have taken the Nix ecosystem where it is today, and it keeps on getting closer to perfection every day!&lt;/p&gt;
+
+&lt;h3 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h3&gt;
+
+&lt;p&gt;I can only say one thing about my Nix configuration affairs: &lt;strong&gt;it ain’t over yet.&lt;/strong&gt; I’m still figuring things out and learning new stuff on a daily basis, so I’m sure there will be plenty of changes in the near future, specially considering that flakes are still marked as experimental.&lt;/p&gt;
+
+&lt;p&gt;Anyway, that’s all I have to say. Thanks for stopping by and have a look at my &lt;a href=&quot;https://github.com/gvolpe/nix-config&quot;&gt;Nix configuration files&lt;/a&gt;, perhaps something in there helps you get that missing piece in yours :)&lt;/p&gt;
+
+&lt;p&gt;Cheers,
+Gabriel.&lt;/p&gt;
+</description>
+        <pubDate>Mon, 10 Jan 2022 09:45:00 +0000</pubDate>
+        <link>https://gvolpe.github.io/blog/nix-flakes/</link>
+        <guid isPermaLink="true">https://gvolpe.github.io/blog/nix-flakes/</guid>
+        
+        
+        <category>nix,</category>
+        
+        <category>nixos,</category>
+        
+        <category>linux,</category>
+        
+        <category>home-manager,</category>
+        
+        <category>flakes,</category>
+        
+        <category>flake</category>
+        
+      </item>
     
       <item>
         <title>NixOS: build your system on Github actions!</title>
@@ -2223,240 +2470,6 @@ the paper &lt;em&gt;Fun with type functions&lt;/em&gt; linked above).&lt;/p&gt;
         <pubDate>Tue, 27 Aug 2019 09:12:00 +0000</pubDate>
         <link>https://gvolpe.github.io/blog/functional-dependencies-and-type-families/</link>
         <guid isPermaLink="true">https://gvolpe.github.io/blog/functional-dependencies-and-type-families/</guid>
-        
-        
-        <category>haskell</category>
-        
-      </item>
-    
-      <item>
-        <title>Lessons learned while writing a Haskell application</title>
-        <description>&lt;p&gt;Having introduced Haskell at my last job I wanted to put into practice all the stuff I learned: take the good, leave the bad. So I started working on an &lt;a href=&quot;https://github.com/gvolpe/exchange-rates&quot;&gt;exchange rates API&lt;/a&gt; using a few libraries I haven’t used before, exclusively for fun and learning purposes.&lt;/p&gt;
-
-&lt;p&gt;In this blog post I’ll try to share what I have identified as good practice so far and what are my personal
-recommendations when writing a Haskell application.&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Note: if you write Scala, many of the tips will also be useful for you.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h3 id=&quot;configuration&quot;&gt;Configuration&lt;/h3&gt;
-
-&lt;p&gt;I tried a couple of libraries where you must write your configuration file using either &lt;code&gt;yaml&lt;/code&gt;, &lt;code&gt;hocon&lt;/code&gt; or &lt;code&gt;json&lt;/code&gt; but I wasn’t satisfied until I’ve been recommended to use &lt;a href=&quot;https://dhall-lang.org/&quot;&gt;dhall-lang&lt;/a&gt;. It’s a configuration language guaranteed to terminate that has also Haskell bindings, &lt;a href=&quot;https://hackage.haskell.org/package/dhall&quot;&gt;nicely packaged&lt;/a&gt; for easy use. It looks as follows:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Env&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Test&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Prod&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;makeConfig&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;λ&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;forex&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;makeForexConfig&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;redis&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;makeRedisConfig&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;makeConfig&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Test&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Yes, it’s a language so one can define functions! Neat huh?&lt;/p&gt;
-
-&lt;h3 id=&quot;production-ready-effect-rio&quot;&gt;Production-ready effect: RIO&lt;/h3&gt;
-
-&lt;p&gt;Ever since I read Michael Snoyman’s articles &lt;a href=&quot;https://www.fpcomplete.com/blog/2017/06/readert-design-pattern&quot;&gt;The ReaderT design pattern&lt;/a&gt; and &lt;a href=&quot;https://www.fpcomplete.com/blog/2017/07/the-rio-monad&quot;&gt;The RIO Monad&lt;/a&gt; I’ve been convinced that this
-is the nicest and easiest approach to write applications.&lt;/p&gt;
-
-&lt;p&gt;Two years later after these articles have been published the package has evolved into what they call &lt;a href=&quot;https://hackage.haskell.org/package/rio&quot;&gt;RIO: A standard
-library for Haskell&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;It doesn’t only package &lt;code&gt;RIO&lt;/code&gt;, its monadic effect, but also its own prelude. And in addition, it re-exports a bunch of other goodies such as error handling and lenses functions.&lt;/p&gt;
-
-&lt;p&gt;So right now this is my effect system of choice and it’s the one you’ll see in the examples below.&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;It’s worth mentioning other (higher-order) effects like &lt;a href=&quot;https://github.com/fused-effects/fused-effects&quot;&gt;fused-effects&lt;/a&gt; and &lt;a href=&quot;https://github.com/polysemy-research/polysemy&quot;&gt;polysemy&lt;/a&gt;, and also &lt;a href=&quot;https://github.com/tweag/capability&quot;&gt;capability&lt;/a&gt;. I think we should all keep an eye on them as they look promising and propose a different take on effects.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h3 id=&quot;polymorphic-record-of-functions&quot;&gt;Polymorphic record of functions&lt;/h3&gt;
-
-&lt;p&gt;This is by far the best way I know of defining polymorphic interfaces.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Cache&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Cache&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cacheNewResult&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Expiration&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Exchange&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;()&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cachedExchange&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Maybe&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Exchange&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Counter&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Counter&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;incrCount&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;()&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getCount&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resetCount&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;()&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;The advantage is that we can create different interpreters using different effect types. For example, the main implementation of &lt;code&gt;Cache m&lt;/code&gt; uses &lt;code&gt;Redis&lt;/code&gt; whereas the test one uses an in-memory map stored in an &lt;code&gt;IORef&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h5 id=&quot;why-not-typeclasses&quot;&gt;Why not typeclasses?&lt;/h5&gt;
-
-&lt;p&gt;Typeclasses are probably what come first when we think about polymorphic interfaces. However, they need laws / properties that define whether an instance is a valid one or not. Secondly, we can only define a single instance for a specific type. This is called coherence. If we can do that, great! If we fail then we would be better off using a record of functions instead.&lt;/p&gt;
-
-&lt;p&gt;To further defend this argument I should, perhaps, write another blog post only on this topic showing examples and expanding on the idea.&lt;/p&gt;
-
-&lt;h3 id=&quot;smart-constructors&quot;&gt;Smart constructors&lt;/h3&gt;
-
-&lt;p&gt;In order to create a specific record of functions it is recommended to hide its constructor and instead export a &lt;em&gt;smart constructor&lt;/em&gt;. These are plain functions, normally effectful, responsible for the creation of a single interface. For convention, I chose to prefix them with &lt;code&gt;mk&lt;/code&gt; (for make).&lt;/p&gt;
-
-&lt;p&gt;Here’s how I defined the smart constructor for &lt;code&gt;Counter&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mkCounter&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Counter&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;mkCounter&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;newIORef&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;IORef&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
-    &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;amp;&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ref&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Counter&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;incrCount&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;atomicModifyIORef&amp;#39;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ref&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;acc&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;acc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;acc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getCount&lt;/span&gt;   &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;readIORef&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ref&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resetCount&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;atomicWriteIORef&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ref&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Don’t look so much at the implementation but more at its type signature. This pattern repeats over and over. We’ll see soon how other smart constructors are defined.&lt;/p&gt;
-
-&lt;h3 id=&quot;parametric-reasoning&quot;&gt;Parametric reasoning&lt;/h3&gt;
-
-&lt;p&gt;&lt;code&gt;RIO&lt;/code&gt; is a concrete effect type, basically a newtype around &lt;code&gt;ReaderT&lt;/code&gt; + &lt;code&gt;IO&lt;/code&gt;, but it’s also fully compatible with &lt;code&gt;mtl&lt;/code&gt;
-typeclasses. This means that we can write functions that use &lt;code&gt;RIO&lt;/code&gt; directly and others that are 100% polymorphic. So…&lt;/p&gt;
-
-&lt;h4 id=&quot;when-to-be-concrete-vs-when-to-be-polymorphic&quot;&gt;When to be concrete vs When to be polymorphic?&lt;/h4&gt;
-
-&lt;p&gt;Here’s my take: Be polymorphic where you have your main logic and be concrete when there’s no logic to test. Let’s look at an example to illustrate this statement better.&lt;/p&gt;
-
-&lt;h5 id=&quot;to-be-concrete&quot;&gt;To be concrete&lt;/h5&gt;
-
-&lt;p&gt;Here are the smart constructors for &lt;code&gt;Cache m&lt;/code&gt; and &lt;code&gt;ForexClient m&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mkRedisCache&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;HasRedisConfig&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;RIO&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Cache&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mkForexClient&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;HasForexConfig&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;RIO&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;ForexClient&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;For our main Cache (implemented using &lt;a href=&quot;https://hackage.haskell.org/package/hedis&quot;&gt;hedis&lt;/a&gt;) and the Forex Client (http client using &lt;a href=&quot;https://hackage.haskell.org/package/wreq&quot;&gt;wreq&lt;/a&gt;) I chose to be concrete, using &lt;code&gt;RIO&lt;/code&gt; and the &lt;code&gt;Has&lt;/code&gt; pattern.&lt;/p&gt;
-
-&lt;p&gt;Although this pattern is well described in the articles linked at the top, they don’t cover polymorphic records of functions as is the case with &lt;code&gt;Ctx m&lt;/code&gt;. So for a quick reference, here’s the &lt;code&gt;HasCache&lt;/code&gt; typeclass and its instance for our context.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;HasCache&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;where&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;cacheL&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Lens&amp;#39;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Cache&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;instance&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Monad&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;HasCache&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;where&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;cacheL&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;lens&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getCache&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getCache&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Note: you need to enable &lt;code&gt;FlexibleInstances&lt;/code&gt;, &lt;code&gt;MultiParamTypeClasses&lt;/code&gt; and &lt;code&gt;FunctionalDependencies&lt;/code&gt;. Thanks to
-&lt;a href=&quot;https://www.reddit.com/user/samb961/&quot;&gt;/u/samb961&lt;/a&gt; for helping me out with this!&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;In both cases they have no logic I’m interested in testing so there’s no motivation to abstract over the effect type.
-What I want to test is how these components play their role in the main logic as we will see soon.&lt;/p&gt;
-
-&lt;h5 id=&quot;to-be-polymorphic&quot;&gt;To be polymorphic&lt;/h5&gt;
-
-&lt;p&gt;The main logic resides in the implementation of the &lt;code&gt;CachedForex&lt;/code&gt; service. By following the flow diagram below you should be able to understand it.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../images/api-rates-flow.png&quot; alt=&quot;flow-diagram&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;em&gt;For the atomic block &lt;code&gt;bracket&lt;/code&gt; and &lt;code&gt;finally&lt;/code&gt; from &lt;code&gt;Control.Monad.Catch&lt;/code&gt; do the trick.&lt;/em&gt;&lt;/p&gt;
-
-&lt;p&gt;Now in order to create the service we need a couple of other components: &lt;code&gt;Logger m&lt;/code&gt;, &lt;code&gt;Cache m&lt;/code&gt;, &lt;code&gt;Counter m&lt;/code&gt; and &lt;code&gt;ForexClient m&lt;/code&gt;. We’ve seen above the definition of a few of them and for brevity I’ll skip others as they are quite similar.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mkExchangeService&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;MonadMask&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;
-     &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;HasLogger&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;
-     &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;HasCache&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;
-     &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;HasCounter&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;
-     &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;HasForexClient&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;
-     &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;MonadReader&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt;
-     &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;ExchangeService&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;By making it polymorphic we get to choose our effect type and the dependencies needed while at the same type we apply &lt;a href=&quot;https://blog.codinghorror.com/the-principle-of-least-power/&quot;&gt;the principle of least power&lt;/a&gt;. This gives us &lt;em&gt;parametric reasoning&lt;/em&gt;. And it’s perfect since we would like to test our logic without having a Redis instance running nor making real http requests to the external web service.&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;One could argue that even if you make it concrete using &lt;code&gt;RIO&lt;/code&gt; or &lt;code&gt;IO&lt;/code&gt; you can still pass different implementations but we would be more limited to test using such effect and it’ll be harder to reason about our function by just looking at its type signature.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;&lt;strong&gt;Testing our main service&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;In this case it ended up being more practical testing using &lt;code&gt;IO&lt;/code&gt; + &lt;code&gt;IORef&lt;/code&gt;, given the &lt;code&gt;MonadMask&lt;/code&gt; constraint on &lt;code&gt;m&lt;/code&gt;. But for demonstration purposes I wrote another version of the test suite using a &lt;a href=&quot;https://github.com/gvolpe/exchange-rates/blob/master/test/Rates/CachedForexRST.hs&quot;&gt;stack of monad
-transformers&lt;/a&gt; that doesn’t use &lt;code&gt;IO&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;The testing approach I followed is to create different interpreters for the dependencies of the main service and then run some property tests on it. So we have an in-memory cache, a dummy Forex client that always returns the same response and a logger that doesn’t log.&lt;/p&gt;
-
-&lt;p&gt;Finally, you need to choose a test library. I went with &lt;a href=&quot;https://hackage.haskell.org/package/hedgehog&quot;&gt;hedgehog&lt;/a&gt;. Its documentation is quite nice and it’s easy to get started with. Eg: below is the definition of the rates test.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;prop_get_rates&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Cache&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Property&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;prop_get_rates&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cache&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;withTests&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1000&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;property&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;do&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;rph&lt;/span&gt;     &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;forAll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Gen&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Range&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;linear&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;   &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;forAll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Gen&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Range&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;linear&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;testLogger&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cache&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mkTestCounter&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mkTestForexClient&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rph&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;service&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;evalIO&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;runRIO&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mkExchangeService&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt;    &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;forAll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Gen&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;element&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;currencies&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt;      &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;forAll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Gen&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;element&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;currencies&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;cached&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;evalIO&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cachedExchange&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cache&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;evalIO&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;getRate&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;service&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;TryRate&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;kr&quot;&gt;case&lt;/span&gt;
-    &lt;span class=&quot;kt&quot;&gt;Right&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rs&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rs&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fromMaybe&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Exchange&lt;/span&gt; &lt;span class=&quot;mf&quot;&gt;1.0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cached&lt;/span&gt;
-    &lt;span class=&quot;kt&quot;&gt;Left&lt;/span&gt;  &lt;span class=&quot;kr&quot;&gt;_&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;assert&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;count&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rph&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;If we get a &lt;code&gt;Right rs&lt;/code&gt; then we assert that the rate is equals to the one cached or the one returned by the forex
-client. If we get a &lt;code&gt;Left e&lt;/code&gt; instead that means that the API limit has been reached so we assert that the counter is greater or equals than the “requests per hour” value.&lt;/p&gt;
-
-&lt;h4 id=&quot;web-server&quot;&gt;Web server&lt;/h4&gt;
-
-&lt;p&gt;It wouldn’t be fair if I didn’t mention the web server. It is written using &lt;a href=&quot;https://haskell-servant.readthedocs.io/en/stable/#&quot;&gt;servant&lt;/a&gt; and it’s a pleasure to use. It also allows you to generate documentation from the API definition using &lt;a href=&quot;https://swagger.io/&quot;&gt;swagger&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;There are only two endpoints so there’s not much to cover but in a nutshell, I decided to organize the code in three
-different modules as shown below.&lt;/p&gt;
-
-&lt;h5 id=&quot;endpoints&quot;&gt;Endpoints&lt;/h5&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;RatesAPI&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;
-       &lt;span class=&quot;kt&quot;&gt;ApiVersion&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&amp;gt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;rates&amp;quot;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;QueryParam&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;from&amp;quot;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;QueryParam&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;to&amp;quot;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Get&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ExchangeResponse&lt;/span&gt;
-  &lt;span class=&quot;kt&quot;&gt;:&amp;lt;|&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ApiVersion&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&amp;gt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;currencies&amp;quot;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Get&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;JSON&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;&lt;em&gt;Notice how the API is defined at the type level!&lt;/em&gt;&lt;/p&gt;
-
-&lt;h5 id=&quot;response-handler&quot;&gt;Response handler&lt;/h5&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;rates&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ExchangeService&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;IO&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Maybe&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Maybe&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Handler&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ExchangeResponse&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;rates&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;service&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Just&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Just&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;handle&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;ApiLimitReached&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;throwError&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;err503&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;errBody&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Api limit has been reached&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;liftIO&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exchangeToResponse&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;$&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getRate&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;service&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;rates&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;throwError&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;err400&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;errBody&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Invalid currencies&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;h5 id=&quot;data-and-json-instances&quot;&gt;Data and json instances&lt;/h5&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ExchangeResponse&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ExchangeResponse&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rate&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Float&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Currency&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;deriving&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Generic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Show&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;instance&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ToJSON&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ExchangeResponse&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;h3 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h3&gt;
-
-&lt;p&gt;These are some of the best practices I know of nowadays. But we all know this is a continuous learning process, it doesn’t end here. Anyway, I hope you can get something out of it!&lt;/p&gt;
-
-&lt;h5 id=&quot;summarizing&quot;&gt;Summarizing:&lt;/h5&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;&lt;em&gt;Parametric reasoning matters&lt;/em&gt;: ideally we should be able to tell what a function does by just looking at its type
-signature.&lt;/li&gt;
-  &lt;li&gt;Be concrete when there’s no need to complicate things.&lt;/li&gt;
-  &lt;li&gt;Polymorphic records of functions are neat.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;Have any thoughts or questions? Share it down in the comments!&lt;/p&gt;
-
-&lt;p&gt;Find the complete source code &lt;a href=&quot;https://github.com/gvolpe/exchange-rates&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
-</description>
-        <pubDate>Sun, 23 Jun 2019 10:28:00 +0000</pubDate>
-        <link>https://gvolpe.github.io/blog/lessons-learned-while-writing-a-haskell-app/</link>
-        <guid isPermaLink="true">https://gvolpe.github.io/blog/lessons-learned-while-writing-a-haskell-app/</guid>
         
         
         <category>haskell</category>

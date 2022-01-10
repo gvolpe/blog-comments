@@ -5,7 +5,7 @@
 A nix flake defines a shell providing the necessary tools to run the blog locally.
 
 ```console
-   nix flake show
+$ nix flake show
 git+file:///home/gvolpe/workspace/blog
 └───devShell
     ├───aarch64-darwin: development environment 'blog-tools-shell'
@@ -19,7 +19,6 @@ git+file:///home/gvolpe/workspace/blog
 
 ```console
 $ nix develop
-$ bundle install
 $ bundle exec jekyll serve
 # ....................
  Auto-regeneration: enabled for '/home/gvolpe/workspace/blog'
