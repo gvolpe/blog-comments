@@ -59,14 +59,20 @@ I could then build my system using this flake! Easy, right?
 $ sudo nixos-rebuild switch --flake .#tongfang-amd
 {% endhighlight %}
 
-The only downside of using `nixos-rebuild` is that the configuration is expected to be under `/etc/nixos`. However, it turns out this flake can also be built via `nix build` from anywhere else!
+By default, `nixos-rebuild` expects the configuration under `/etc/nixos`. However, we can specify a different directory, as shown below.
+
+{% highlight bash %}
+$ sudo nixos-rebuild switch --flake '/home/gvolpe/workspace/nix-config#tongfang-amd'
+{% endhighlight %}
+
+It also turns out this flake can be built via `nix build`.
 
 {% highlight bash %}
 $ nix build .#nixosConfigurations.tongfang-amd.config.system.build.toplevel
 $ sudo result/bin/switch-to-configuration switch
 {% endhighlight %}
 
-If I'm not mistaken (I haven't tried it on a fresh install yet), we can switch the system configuration from any directory by using this command!
+This means we can switch the system configuration from any directory by using either command!
 
 That's handy if you keep all your configurations in a single directory and these are tracked by a version control system (VCS) such as git.
 
