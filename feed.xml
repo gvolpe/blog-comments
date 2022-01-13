@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 10 Jan 2022 08:49:47 +0000</pubDate>
-    <lastBuildDate>Mon, 10 Jan 2022 08:49:47 +0000</lastBuildDate>
+    <pubDate>Thu, 13 Jan 2022 09:04:34 +0000</pubDate>
+    <lastBuildDate>Thu, 13 Jan 2022 09:04:34 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -65,12 +65,16 @@
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo nixos-rebuild switch --flake .#tongfang-amd&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;The only downside of using &lt;code&gt;nixos-rebuild&lt;/code&gt; is that the configuration is expected to be under &lt;code&gt;/etc/nixos&lt;/code&gt;. However, it turns out this flake can also be built via &lt;code&gt;nix build&lt;/code&gt; from anywhere else!&lt;/p&gt;
+&lt;p&gt;By default, &lt;code&gt;nixos-rebuild&lt;/code&gt; expects the configuration under &lt;code&gt;/etc/nixos&lt;/code&gt;. However, we can specify a different directory, as shown below.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo nixos-rebuild switch --flake &lt;span class=&quot;s1&quot;&gt;&amp;#39;/home/gvolpe/workspace/nix-config#tongfang-amd&amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It also turns out this flake can be built via &lt;code&gt;nix build&lt;/code&gt;.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix build .#nixosConfigurations.tongfang-amd.config.system.build.toplevel
 &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo result/bin/switch-to-configuration switch&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
-&lt;p&gt;If I’m not mistaken (I haven’t tried it on a fresh install yet), we can switch the system configuration from any directory by using this command!&lt;/p&gt;
+&lt;p&gt;This means we can switch the system configuration from any directory by using either command!&lt;/p&gt;
 
 &lt;p&gt;That’s handy if you keep all your configurations in a single directory and these are tracked by a version control system (VCS) such as git.&lt;/p&gt;
 
