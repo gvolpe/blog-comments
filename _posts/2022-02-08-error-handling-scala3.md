@@ -67,7 +67,7 @@ Much nicer! Now, how do we get this to play nicely in the `F` context? Bear with
 
 ### Error handling
 
-In my experience, error types are only desirable at the bottom layers. Most of the error handling should occur at the mid layers (business logic), or perhaps a few errors should be handled at the top layers.
+In my experience, error types are only desirable at the bottom layers. Most of the error handling should occur at the mid layers (business logic) where the errors are eliminated, or perhaps a few errors should be left for the top layers to handle.
 
 To put these words into an example, let's say we work with a three-layer application.
 
@@ -93,15 +93,13 @@ case object DuplicateUsername extends NoStackTrace
 type DuplicateUsername = DuplicateUsername.type
 {% endhighlight %}
 
-
-{% highlight scala %}
-{% endhighlight %}
+If you have read my book [Practical FP in Scala](https://leanpub.com/pfp-scala), you know I am not a big fan of stack traces :)
 
 #### Middle layer
 
 Now at the middle layer, we might have our business logic, making calls to the `UserStore`, and perhaps to other components that interact with the outside world.
 
-In the following mid layer, our aim is to handle all declared errors.
+In the following mid layer, our aim is to handle all declared errors, so we pattern match on all cases.
 
 {% highlight scala %}
 def mid1[F[_]: Logger: MonadThrow](
@@ -139,6 +137,8 @@ def mid2[F[_]: Logger: MonadThrow](
   }
 {% endhighlight %}
 
+Any other error is caught in the last case, where we simply leave it unhandled.
+
 This works, though, the ergonomics are not the best, as we need to manually call `asRight` and `asLeft` in different places. We can improve the UX with some custom extension methods.
 
 {% highlight scala %}
@@ -169,6 +169,17 @@ extension [F[_]: MonadThrow, A](fa: F[A])
   def lift[E <: Throwable]: F[Either[E, A]] =
     fa.map(_.asRight[E]).recover { case e: E => e.asLeft }
 {% endhighlight %}
+
+UPDATE: [Vasil Vasilev](https://github.com/vasilmkd) discovered the existence of `attemptNarrow` from `ApplicativeError`, after having a quick chat about the differences between `lift` and `attempt`, which is exactly what this does.
+
+The only difference, is that `attemptNarrow` requires a `ClassTag`, but that's not a problem :)
+
+{% highlight scala %}
+def lift[E <: Throwable: ClassTag]: F[Either[E, A]] =
+  fa.attemptNarrow
+{% endhighlight %}
+
+We could use `attemptNarrow` directly, but if you get to the end of this post, you'll understand why I chose to keep the `lift` extension method instead.
 
 Notice that for this to work, we need to either declare the function's return type or to indicate what types we expect when we call `lift`. E.g.
 
@@ -285,25 +296,32 @@ However, by doing so, we lose the `rethrow` ability, as we are no longer working
 Challenge accepted! Let's introduce a `rethrowU` that works on union types.
 {% highlight scala %}
 extension [F[_]: MonadThrow, E <: Throwable, A](fa: F[E | A])
-  @nowarn
   def rethrowU: F[A] =
-    fa.flatMap {
-      case e: E => e.raiseError[F, A]
-      case a: A => a.pure[F]
-    }
+    fa.map(_.asEither).rethrow
+
+extension [E <: Throwable, A](ut: E | A)
+  @nowarn
+  def asEither: Either[E, A] =
+    ut match
+      case e: E => Left(e)
+      case a: A => Right(a)
 {% endhighlight %}
 
 In the same way, we can also introduce a `liftU`, defined in terms of `lift` under the same scope.
 
 {% highlight scala %}
 extension [F[_]: MonadThrow, A](fa: F[A])
-  @nowarn
-  def liftU[E <: Throwable]: F[E | A] =
-    lift.map {
+  def liftU[E <: Throwable: ClassTag]: F[E | A] =
+    lift.map(_.asUnionType)
+
+extension [E, A](either: Either[E, A])
+  def asUnionType: E | A =
+    either match
       case Left(e: E)  => e
       case Right(a: A) => a
-    }
 {% endhighlight %}
+
+This is the reason why I kept the `lift` extension method instead of using `attemptNarrow`. However, I could have also named this `attemptNarrowU` instead of `liftU`, but I prefer the shorter names :)
 
 Now we can rewrite the final `mid5` as follows.
 
@@ -345,6 +363,10 @@ def top3(
 I think this error modeling and handling technique is very promising. I would probably still keep the `Either[E1 | E2, A`] model over `E1 | E2 | A`, but this blog post has demonstrated that both options are valid.
 
 The code shown in this post hasn't been compiled, but I use the very same technique in the project of my [upcoming book](https://leanpub.com/feda), so you can have a look the [source code](https://github.com/gvolpe/trading/tree/main/modules/forecasts/src/main/scala/trading/forecasts) directly.
+
+Let's also remind ourselves that the left side of `Either` representing errors is merely a social agreement. We could as well do it the other way around, but that would need different `Functor` / `Monad` instances, so it is not quite practical.
+
+In the same way, we could agree that only the right hand-side type of a union type represents the successful value, and any other types on the left hand-side represent the errors. We could probably write typeclass instances that prove the lawfulness of such approach.
 
 Error handling is always a hot topic in FP land, so don't take this as the *ultimate word*, but simply as a technique that can be exploited for our benefits :)
 
