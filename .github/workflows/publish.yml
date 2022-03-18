@@ -6,8 +6,13 @@ on:
       - master
     paths:
       - ".github/workflows/publish.yml"
+      - "_includes/**"
+      - "_layouts/**"
       - "_posts/**"
+      - "css/**"
       - "images/**"
+      - "js/**"
+      - "index.html"
 
 jobs:
   publish:
