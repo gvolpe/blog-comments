@@ -1,14 +1,14 @@
 ---
 layout: post
-title:  "Scala 3 is not production ready"
+title:  "Scala 3: the missing compiler plugin"
 date:   2022-11-20 10:45:00
 categories: scala3, scala, fp, functional programming, tooling, linting, linter
 github_comments_issueid: "19"
 ---
 
-Apologies for the catchy title, I couldn't help my self :)
+If you have read this post when it first came out and felt offended by its catchy title, let me apologize for it. It caused some controversy, so I decided to change the title completely to highlight more what this post was about in the first place. Hope this time folks read to the end before drawing any conclusion :)
 
-However, now that I have your attention, I believe I have a good point to make. If you bear with me a few more sentences, you may share my thoughts as well.
+---
 
 [Scala 3](https://docs.scala-lang.org/scala3/new-in-scala3.html) has been around for a while now, but not many people are using it in production just yet. There's a lot of skepticism in the community when starting out a new project.
 
