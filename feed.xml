@@ -5,15 +5,15 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 20 Nov 2022 14:10:12 +0000</pubDate>
-    <lastBuildDate>Sun, 20 Nov 2022 14:10:12 +0000</lastBuildDate>
+    <pubDate>Mon, 21 Nov 2022 17:12:35 +0000</pubDate>
+    <lastBuildDate>Mon, 21 Nov 2022 17:12:35 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
-        <title>Scala 3 is not production ready</title>
-        <description>&lt;p&gt;Apologies for the catchy title, I couldn’t help my self :)&lt;/p&gt;
+        <title>Scala 3: the missing compiler plugin</title>
+        <description>&lt;p&gt;If you have read this post when it first came out and felt offended by its catchy title, let me apologize for it. It caused some controversy, so I decided to change the title completely to highlight more what this post was about in the first place. Hope this time folks read to the end before drawing any conclusion :)&lt;/p&gt;
 
-&lt;p&gt;However, now that I have your attention, I believe I have a good point to make. If you bear with me a few more sentences, you may share my thoughts as well.&lt;/p&gt;
+&lt;hr /&gt;
 
 &lt;p&gt;&lt;a href=&quot;https://docs.scala-lang.org/scala3/new-in-scala3.html&quot;&gt;Scala 3&lt;/a&gt; has been around for a while now, but not many people are using it in production just yet. There’s a lot of skepticism in the community when starting out a new project.&lt;/p&gt;
 
