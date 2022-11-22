@@ -30,7 +30,7 @@ Linting has been neglected in Scala 3, that's the sad truth. Only in June this y
 
 Anyway, I think linting features such as "unused variables" and "unused imports" are only a nice-to-have, so I can understand why this work was not prioritized.
 
-However, there is one linting feature that has been blocking the FP community from taking this new version of the language more seriously: `-Ywarn-value-discard` (as called in Scala 2).
+However, there is one linting feature that has been blocking the FP community from taking this new version of the language more seriously: `-Wvalue-discard`.
 
 It may seem insignificant, but this little feature can prevent massive bugs from reaching production in purely functional codebases. Here's an example that showcases its importance.
 
@@ -51,7 +51,7 @@ sbt:demo> compile
 
 This kind of code can be even harder to manually spot in larger codebases.
 
-Scala 2 ships with `-Ywarn-value-discard`, which would only emit a warning with the same code, but it is highly recommended to make it a fatal error via the `-Xfatal-warnings` flag (also present in Scala 3).
+Scala 2 ships with `-Wvalue-discard` (formerly known as `-Ywarn-value-discard`), which would only emit a warning with the same code, but it is highly recommended to make it a fatal error via the `-Xfatal-warnings` flag (also present in Scala 3).
 
 The [sbt-tpolecat](https://github.com/typelevel/sbt-tpolecat) plugin makes it easy for us to focus on writing code if we let it manage the configuration of such important flags, which can be further customized.
 
