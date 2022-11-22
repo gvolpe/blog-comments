@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 21 Nov 2022 17:12:35 +0000</pubDate>
-    <lastBuildDate>Mon, 21 Nov 2022 17:12:35 +0000</lastBuildDate>
+    <pubDate>Tue, 22 Nov 2022 08:26:57 +0000</pubDate>
+    <lastBuildDate>Tue, 22 Nov 2022 08:26:57 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -35,7 +35,7 @@
 
 &lt;p&gt;Anyway, I think linting features such as “unused variables” and “unused imports” are only a nice-to-have, so I can understand why this work was not prioritized.&lt;/p&gt;
 
-&lt;p&gt;However, there is one linting feature that has been blocking the FP community from taking this new version of the language more seriously: &lt;code&gt;-Ywarn-value-discard&lt;/code&gt; (as called in Scala 2).&lt;/p&gt;
+&lt;p&gt;However, there is one linting feature that has been blocking the FP community from taking this new version of the language more seriously: &lt;code&gt;-Wvalue-discard&lt;/code&gt;.&lt;/p&gt;
 
 &lt;p&gt;It may seem insignificant, but this little feature can prevent massive bugs from reaching production in purely functional codebases. Here’s an example that showcases its importance.&lt;/p&gt;
 
@@ -52,7 +52,7 @@
 
 &lt;p&gt;This kind of code can be even harder to manually spot in larger codebases.&lt;/p&gt;
 
-&lt;p&gt;Scala 2 ships with &lt;code&gt;-Ywarn-value-discard&lt;/code&gt;, which would only emit a warning with the same code, but it is highly recommended to make it a fatal error via the &lt;code&gt;-Xfatal-warnings&lt;/code&gt; flag (also present in Scala 3).&lt;/p&gt;
+&lt;p&gt;Scala 2 ships with &lt;code&gt;-Wvalue-discard&lt;/code&gt; (formerly known as &lt;code&gt;-Ywarn-value-discard&lt;/code&gt;), which would only emit a warning with the same code, but it is highly recommended to make it a fatal error via the &lt;code&gt;-Xfatal-warnings&lt;/code&gt; flag (also present in Scala 3).&lt;/p&gt;
 
 &lt;p&gt;The &lt;a href=&quot;https://github.com/typelevel/sbt-tpolecat&quot;&gt;sbt-tpolecat&lt;/a&gt; plugin makes it easy for us to focus on writing code if we let it manage the configuration of such important flags, which can be further customized.&lt;/p&gt;
 
@@ -92,8 +92,8 @@
 &lt;p&gt;Finally, huge thanks to &lt;a href=&quot;https://github.com/ghik&quot;&gt;Roman Janusz&lt;/a&gt; (author of Zerowaste) for being the unsung Scala 3 FP hero!&lt;/p&gt;
 </description>
         <pubDate>Sun, 20 Nov 2022 10:45:00 +0000</pubDate>
-        <link>https://gvolpe.github.io/blog/scala3-is-not-prod-ready/</link>
-        <guid isPermaLink="true">https://gvolpe.github.io/blog/scala3-is-not-prod-ready/</guid>
+        <link>https://gvolpe.github.io/blog/scala3-missing-compiler-plugin/</link>
+        <guid isPermaLink="true">https://gvolpe.github.io/blog/scala3-missing-compiler-plugin/</guid>
         
         
         <category>scala3,</category>
