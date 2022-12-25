@@ -1,0 +1,146 @@
+<!DOCTYPE html> <html lang="en-uk"> <head> <meta charset="utf-8"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title> Neovim meets Nix flakes &bull; gvolpe's blog </title> <meta name="description" content="Introduction"> <link rel="stylesheet" href="/blog/css/main.css"> <link rel="canonical" href="https://gvolpe.github.io/blog/neovim-meets-nix-flakes/"> <link rel="alternate" type="application/rss+xml" title="gvolpe's blog" href="https://gvolpe.github.io/blog/feed.xml" /> <script defer type="text/javascript" src="https://api.pirsch.io/pirsch.js" id="pirschjs" data-code="db2twsz97grcqToSsEMhvcQXm8rLaFmQ"> </script> </head> <body class="single"> <main class="main"> <header class="header"> <div class="overlay"> <div class="container"> <h1 class="title"> <a href="/blog/">gvolpe's blog</a> </h1> <nav class="navbar"> <a href="#" class="menu-icon"> <span></span> <span></span> <span></span> </a> <ul class="nav"> <li><a href="https://gvolpe.com" target="_blank">Website</a></li> </ul> </nav> </div> </div> </header> <article class="post container card"> <header class="post-header"> <h1 class="post-title">Neovim meets Nix flakes</h1> <span class="post-meta"> <time class="post-date" datetime="2022-12-25">Dec 25, 2022</time> <span class="post-author">by Gabriel Volpe</span> </span> </header> <div class="post-content"> <h2 id="introduction">Introduction</h2> <p>It is no secret that <a href="https://neovim.io/">Neovim</a> is my favorite text editor. I use it on a daily basis for multiple purposes:</p> <ul> <li>To write Scala code (and the occasional Typescript) for $work.</li> <li>To write the extensive text and code for <a href="https://leanpub.com/u/gvolpe">my books</a>.</li> <li>To fine-tune my ever-changing <a href="https://github.com/gvolpe/nix-config">NixOS configuration</a>.</li> <li>To write blog posts such as this one.</li> <li>For the casual Haskell and Rust code I sometimes need to write.</li> <li>Literally for any other text file I need to explore and modify.</li> </ul> <p>All this functionality is enabled by many plugins configured and tailored to my needs. Now there exist a bunch of plugin managers to handle the installation of plugins, from the classic <a href="https://github.com/junegunn/vim-plug">vim-plug</a> to the more esoteric <a href="https://github.com/folke/lazy.nvim">lazy.nvim</a>.</p> <p>On the other side we have Nix, which strives for reproducibility at all costs. Among the many packages in <code>nixpkgs</code>, <a href="https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/editors/neovim/default.nix">Neovim</a> has been around for a while. Furthermore, there exist <a href="https://github.com/NixOS/nixpkgs/tree/master/pkgs/applications/editors/vim/plugins">many derivations</a> so that plugins can also be installed via Nix.</p> <p>Home Manager users can install and configure Neovim with any desired plugin via its <a href="https://nix-community.github.io/home-manager/options.html#opt-programs.neovim.enable">officially supported module</a>. Or it can also be installed directly on NixOS. In either case, everything comes from the <code>nixpkgs</code> repository.</p> <p>The only downside of relying on plugins defined in <code>nixpkgs</code> is that they may get quickly outdated, forcing us to resort to overlays or overrides to actually use the latest version, or that specific fork you would like to test. This problem goes away with the introduction <a href="https://nixos.wiki/wiki/Flakes">Nix flakes</a>.</p> <h2 id="neovim-flake">Neovim Flake</h2> <p>Up to August 2022, my Neovim configuration was tightly coupled to my Home Manager configuration. It now lives at <a href="https://github.com/gvolpe/neovim-coc">neovim-coc</a>, and it is only there for archival reasons; it is no longer maintained.</p> <p><img src="../images/neovim-flake.png" alt="flake" /></p> <p>It was back then when I started <a href="https://github.com/gvolpe/neovim-flake">Neovim Flake</a> as a fork of <a href="https://github.com/jordanisaacs">Jordan Isaacs</a>’ flake. I liked the flakes approach for individual applications so much that I soon started making countless changes to adapt it to my needs and liking. It changed so much that you wouldn’t recognize it from the fork.</p> <p>Nowadays, it is my default Neovim configuration, and I would like to share with you what’s so special about it.</p> <p>Flakes consist of <em>inputs</em> and <em>outputs</em>. For instance, here are some inputs declared in the <code>flake.nix</code> file.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">inputs =</span> <span class="p">{</span>
+    nixpkgs<span class="o">.</span><span class="ss">url =</span> <span class="l">github:nixos/nixpkgs/nixpkgs-unstable</span><span class="p">;</span>
+    flake-utils<span class="o">.</span><span class="ss">url =</span> <span class="l">github:numtide/flake-utils</span><span class="p">;</span>
+
+    <span class="ss">nmd =</span> <span class="p">{</span>
+      <span class="ss">url =</span> <span class="l">gitlab:rycee/nmd</span><span class="p">;</span>
+      <span class="ss">flake =</span> <span class="no">false</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    <span class="ss">nvim-lspconfig =</span> <span class="p">{</span>
+      <span class="ss">url =</span> <span class="l">github:neovim/nvim-lspconfig</span><span class="p">;</span>
+      <span class="ss">flake =</span> <span class="no">false</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="ss">nvim-treesitter =</span> <span class="p">{</span>
+      <span class="ss">url =</span> <span class="l">github:nvim-treesitter/nvim-treesitter</span><span class="p">;</span>
+      <span class="ss">flake =</span> <span class="no">false</span><span class="p">;</span>
+    <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>The first two inputs correspond to <code>nixpkgs</code> (the version we want to use for all the packages) and <code>flake-utils</code> (to make it compatible with Linux and Mac, among other platforms). The third input <code>nmd</code> serves the purpose of generating documentation for the Nix modules, as we will see soon. Ultimately, the remaining inputs correspond to Neovim plugins pointing directly to their source (there are many more declared in this flake).</p> <p>The outputs can be displayed by running <code>nix flake show</code>.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix flake show
+git+file:///home/gvolpe/workspace/neovim-flake
+├───apps
+│   ├───aarch64-darwin
+│   │   ├───default: app
+│   │   └───nvim: app
+│   ├───aarch64-linux
+│   │   ├───default: app
+│   │   └───nvim: app
+│   ├───x86_64-darwin
+│   │   ├───default: app
+│   │   └───nvim: app
+│   └───x86_64-linux
+│       ├───default: app
+│       └───nvim: app
+├───devShells
+│   └───x86_64-linux
+│       └───default: development environment <span class="s1">&#39;nix-shell&#39;</span>
+├───nixosModules
+│   └───x86_64-linux: NixOS module
+├───overlays
+│   └───x86_64-linux: Nixpkgs overlay
+└───packages
+    └───x86_64-linux
+        ├───default: package <span class="s1">&#39;neovim-0.8.1&#39;</span>
+        ├───docs: package <span class="s1">&#39;html-manual&#39;</span>
+        ├───metals: package <span class="s1">&#39;metals-0.11.9&#39;</span>
+        └───neovim-ide: package <span class="s1">&#39;neovim-0.8.1&#39;</span></code></pre></div> <p>We will find five different things, all with multi-platform support (only shown in <code>apps</code>, and omitted for brevity in all the other cases).</p> <ul> <li><code>apps</code>: any program that can run via <code>nix run</code>.</li> <li><code>devShells</code>: development shells that can be used via <code>nix develop</code>.</li> <li><code>nixosModules</code>: modules that can be imported into your Nix system.</li> <li><code>overlays</code>: custom packages and functions you can import into your configuration.</li> <li><code>packages</code>: any package that can be built via <code>nix build</code>.</li> </ul> <p>This is the command we use when the project is checked out locally, but it can be done remotely too.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix flake show github:gvolpe/neovim-flake</code></pre></div> <p>In the same spirit, you can try this Neovim out with its <a href="https://github.com/gvolpe/neovim-flake/blob/main/lib/neovim-ide-full.nix">default configuration and enabled plugins</a>.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix run github:gvolpe/neovim-flake</code></pre></div> <p>However, we all have different preferences, so it is normal to wish we could tweak a few settings here and there. This is made possible by the module explained in the following section.</p> <h3 id="home-manager-module">Home Manager module</h3> <p>The <code>nixosModules</code> output exposes a Home Manager module we can import into our configuration.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">imports =</span> <span class="p">[</span> neovim-flake<span class="o">.</span>nixosModules<span class="o">.</span>hm <span class="p">];</span>
+<span class="p">}</span></code></pre></div> <p>Once imported, we can use the module in our configuration as follows.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  programs<span class="o">.</span><span class="ss">neovim-ide =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">settings =</span> <span class="p">{</span>
+      vim<span class="o">.</span><span class="ss">viAlias =</span> <span class="no">false</span><span class="p">;</span>
+      vim<span class="o">.</span><span class="ss">vimAlias =</span> <span class="no">true</span><span class="p">;</span>
+      vim<span class="o">.</span><span class="ss">lsp =</span> <span class="p">{</span>
+        <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="p">};</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>It’s called <code>neovim-ide</code> because it is a batteries included Neovim configuration with LSP support for various languages, but emphasizing the Scala programming language. Here’s an example:</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  vim<span class="o">.</span><span class="ss">lsp =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">scala =</span> <span class="p">{</span>
+      <span class="ss">enable =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="ss">metals =</span> pkgs<span class="o">.</span>metalsBuilder <span class="p">{</span>
+        <span class="ss">version =</span> <span class="s2">&quot;0.11.9+235-2f0e69f8-SNAPSHOT&quot;</span><span class="p">;</span>
+        <span class="ss">outputHash =</span> <span class="s2">&quot;sha256-9ZJ5bew+ttAr+K9vsM6DKP4G0dcAEXyBYizNA7BeeG8=&quot;</span><span class="p">;</span>
+      <span class="p">};</span>
+      <span class="ss">type =</span> <span class="s2">&quot;nvim-metals&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>It is set to use the amazing <a href="https://github.com/scalameta/nvim-metals">nvim-metals</a>, and the latest snapshot of Metals. We use <code>pkgs.metalsBuilder</code> to build a custom Metals version, which is a function exposed by the <code>overlays</code> output. In order to use it, we need to add it to our configuration. For example:</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">pkgs =</span> <span class="nb">import</span> nixpkgs <span class="p">{</span>
+    <span class="k">inherit</span> system<span class="p">;</span>
+    <span class="ss">overlays =</span> <span class="p">[</span> neovim-flake<span class="o">.</span>overlays<span class="o">.</span>default <span class="p">];</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>The module is not final by any means, and it could certainly be improved, but it is perfect for my use cases. Ultimately, adding new modules is quite straightforward via a pull request.</p> <p>For example, here’s the module for the <code>hop</code> plugin.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> config<span class="p">,</span> lib<span class="p">,</span> pkgs<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="k">with</span> lib<span class="p">;</span>
+
+<span class="k">let</span>
+  <span class="ss">cfg =</span> config<span class="o">.</span>vim<span class="o">.</span>hop<span class="p">;</span>
+<span class="k">in</span>
+<span class="p">{</span>
+  options<span class="o">.</span>vim<span class="o">.</span><span class="ss">hop =</span> <span class="p">{</span>
+    <span class="ss">enable =</span> mkOption <span class="p">{</span>
+      <span class="ss">type =</span> types<span class="o">.</span>bool<span class="p">;</span>
+      <span class="ss">description =</span> <span class="s2">&quot;Enable Hop plugin (easy motion)&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+
+  <span class="ss">config =</span> mkIf cfg<span class="o">.</span>enable <span class="p">({</span>
+    vim<span class="o">.</span><span class="ss">startPlugins =</span> <span class="p">[</span> pkgs<span class="o">.</span>neovimPlugins<span class="o">.</span>hop <span class="p">];</span>
+
+    vim<span class="o">.</span><span class="ss">nnoremap =</span> <span class="p">{</span>
+      <span class="s2">&quot;&lt;leader&gt;h&quot;</span> <span class="o">=</span> <span class="s2">&quot;&lt;cmd&gt; HopPattern&lt;CR&gt;&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+
+    vim<span class="o">.</span><span class="ss">luaConfigRC =</span> <span class="s1">&#39;&#39;</span>
+<span class="s1">      require(</span><span class="err">&#39;</span><span class="s1">hop</span><span class="err">&#39;</span><span class="s1">).setup()</span>
+<span class="s1">    &#39;&#39;</span><span class="p">;</span>
+  <span class="p">});</span>
+<span class="p">}</span></code></pre></div> <p>Have a look at all the existing <a href="https://github.com/gvolpe/neovim-flake/tree/main/modules">modules</a> for more details.</p> <h4 id="documentation">Documentation</h4> <p>Home Manager users are accustomed to access the <a href="https://nix-community.github.io/home-manager/options.html">DocBook documentation</a> for all the available options in a specific module. NixOS users enjoy an even <a href="https://search.nixos.org/options">better experience</a>. Thanks to Robert Helgesson’s <a href="https://gitlab.com/rycee/nmd/">nmd</a>, this Neovim Flake HM module is also documented at <a href="https://gvolpe.com/neovim-flake/">gvolpe.com/neovim-flake</a>.</p> <p>For instance, the <a href="https://gvolpe.com/neovim-flake/options.html#opt-vim.lsp.scala.enable">vim.lsp.scala</a> options look as follows.</p> <p><img src="../images/vim-scala-docs.png" alt="docs" /></p> <h3 id="updates">Updates</h3> <p>So far, we have seen how it can be used and configured, but haven’t talked about one of its greatest benefits: updates. To update all inputs to their latest version, we can run the following command.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix flake update</code></pre></div> <p>However, this is undesirable most of the time, as some plugins may break and we would not notice until we test that particular plugin, which may happen weeks after this update was performed.</p> <p>In most cases, it is recommended to update a specific plugin at a time, to test it in isolation. For example:</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix flake lock --update-input nvim-metals
+warning: updating lock file <span class="s1">&#39;/home/gvolpe/workspace/neovim-flake/flake.lock&#39;</span>:
+• Updated input <span class="s1">&#39;nvim-metals&#39;</span>:
+    <span class="s1">&#39;github:scalameta/nvim-metals/b7587a9155d22761f1b28c18f7927e6df0d08387&#39;</span> <span class="o">(</span>2022-09-05<span class="o">)</span>
+  → <span class="s1">&#39;github:scalameta/nvim-metals/d1c01907256dae7c9d55ba1fcfb8cf6b4f583325&#39;</span> <span class="o">(</span>2022-12-09<span class="o">)</span></code></pre></div> <p>The <code>flake.lock</code> file is the one keeping track of the specific versions we declare in our <code>flake.nix</code> file. Once this plugin is updated, we can try to build it via <code>nix build</code>.</p> <p>Still, it would be more interesting to test the plugin actually works with a quick manual test. To do so, we can head to any Scala project directory, and run this version of the Neovim flake there.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span><span class="nb">cd</span> ../my-scala-project
+<span class="nv">$ </span>nix run ../neovim-flake</code></pre></div> <p>That is all it takes! Isn’t this wonderful?</p> <p>This approach allows us to use whatever plugin we want in whatever version (at least most of them).</p> <h3 id="tree-sitter-plugins">Tree-sitter plugins</h3> <p>Folks who rely on <a href="https://github.com/tree-sitter/tree-sitter">Tree-sitter</a>, know that its installation with the many different grammars is not as trivial. Yet, Nix makes the management of tree-sitter grammars reproducible and easy to install.</p> <p>For example, these are some of the inputs I declare to use the <code>tree-sitter-scala</code> fork from Eugene.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">inputs =</span> <span class="p">{</span>
+    ts-build<span class="o">.</span><span class="ss">url =</span> <span class="l">github:pta2002/build-ts-grammar.nix</span><span class="p">;</span>
+
+    <span class="ss">tree-sitter-scala =</span> <span class="p">{</span>
+      <span class="ss">url =</span> <span class="l">github:eed3si9n/tree-sitter-scala/fork-integration</span><span class="p">;</span>
+      <span class="ss">flake =</span> <span class="no">false</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>This is then treated specially by a library function defined by the Neovim Flake.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">tree-sitter-scala3 =</span> inputs<span class="o">.</span>ts-build<span class="o">.</span>lib<span class="o">.</span>buildGrammar pkgs <span class="p">{</span>
+    <span class="ss">language =</span> <span class="s2">&quot;scala&quot;</span><span class="p">;</span>
+    <span class="ss">version =</span> <span class="s2">&quot;eed3si9n-fork&quot;</span><span class="p">;</span>
+    <span class="ss">source =</span> inputs<span class="o">.</span>tree-sitter-scala<span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="ss">ts =</span> prev<span class="o">.</span>tree-sitter<span class="o">.</span>override <span class="p">{</span>
+    <span class="ss">extraGrammars =</span> <span class="p">{</span> <span class="k">inherit</span> tree-sitter-scala3<span class="p">;</span> <span class="p">};</span>
+  <span class="p">};</span>
+
+  <span class="ss">treesitterGrammars =</span> ts<span class="o">.</span>withPlugins <span class="p">(</span>p<span class="p">:</span> <span class="p">[</span>
+    p<span class="o">.</span>tree-sitter-scala3
+    p<span class="o">.</span>tree-sitter-nix
+    p<span class="o">.</span>tree-sitter-elm
+  <span class="p">]);</span></code></pre></div> <p>You can quickly look at the available grammars with the following command.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix search nixpkgs tree-sitter-grammars
+* legacyPackages.x86_64-linux.tree-sitter-grammars.tree-sitter-bash <span class="o">(</span>0.20.7<span class="o">)</span>
+* legacyPackages.x86_64-linux.tree-sitter-grammars.tree-sitter-beancount <span class="o">(</span>0.20.7<span class="o">)</span>
+* legacyPackages.x86_64-linux.tree-sitter-grammars.tree-sitter-bibtex <span class="o">(</span>0.20.7<span class="o">)</span>
+* legacyPackages.x86_64-linux.tree-sitter-grammars.tree-sitter-c <span class="o">(</span>0.20.7<span class="o">)</span></code></pre></div> <p>There are always plugins that require special treatment, but that’s not a blocker. For instance, the Smithy grammar requires the highlights file to be copied manually for some reason, but Nix makes it easy to automate this trivial task in a reproducible way.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">nvimTreesitterHook =</span> <span class="s1">&#39;&#39;</span>
+<span class="s1">    rm -r parser</span>
+<span class="s1">    ln -s </span><span class="si">${</span>treesitterGrammars<span class="si">}</span><span class="s1"> parser</span>
+<span class="s1">    mkdir -p $out/queries/smithy</span>
+<span class="s1">    cp </span><span class="si">${</span>ts<span class="o">.</span>builtGrammars<span class="o">.</span>tree-sitter-smithy<span class="si">}</span><span class="s1">/queries/highlights.scm $out/queries/smithy/highlights.scm</span>
+<span class="s1">  &#39;&#39;</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div> <p>In most cases, building your custom tree-sitter grammar should be as simple as the <code>tree-sitter-scala</code> one.</p> <h3 id="conclusion">Conclusion</h3> <p>If you are still hesitating over using Nix, this blog post laid out another compelling use case :)</p> <p>Give it a try (drop it a 🌟 if you enjoy it!) and if you need any help, reach out via the <a href="https://github.com/gvolpe/neovim-flake/discussions">discussions</a> section.</p> <p>Merry Xmas, Gabriel.</p> <aside class="share"> <span>Share this: </span> <a href="http://twitter.com/share?text=Neovim meets Nix flakes&amp;url=https://gvolpe.github.io/neovim-meets-nix-flakes/&amp;hashtags=scala,haskell,fp&amp;via=volpegabriel87" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;"> <i class="fa fa-twitter-square"></i> </a> </aside> <div id="gh-comments"> <br/><br/> <h6>COMMENTS</h6> <div id="gh-comments-list"></div> </div> <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script> <script src="/blog/js/github-comments.js"> </script> <script type="text/javascript"> DoGithubComments ( "gvolpe/blog" , "20" ); </script> <noscript>Please enable JavaScript to view comments.</noscript> </div> </article> <footer class="footer t-center"> <div class="container"> <div class="social-icons"> <ul class="text-left"> <li><a href="https://twitter.com/volpegabriel87" target="_blank"><i class="fa fa-twitter"></i></a></li> </ul> </div> <small>&copy; 2022 All rights reserved. Made with <a href="http://jekyllrb.com" target="_blank">Jekyll</a> and <i class="icon icon-heart"></i></small> <small>by <a href="http://nandomoreira.me" target="_blank">nandomoreira.me</a></small> </div> </footer> </main> </body> </html></body></html>
+<!--
+// # Zetsu Jekyll theme - https://github.com/nandomoreriame/zetsu/
+// by nandomoreira.me
+-->

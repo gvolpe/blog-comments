@@ -5,9 +5,318 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 22 Nov 2022 08:26:57 +0000</pubDate>
-    <lastBuildDate>Tue, 22 Nov 2022 08:26:57 +0000</lastBuildDate>
+    <pubDate>Sun, 25 Dec 2022 12:46:19 +0000</pubDate>
+    <lastBuildDate>Sun, 25 Dec 2022 12:46:19 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Neovim meets Nix flakes</title>
+        <description>&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;It is no secret that &lt;a href=&quot;https://neovim.io/&quot;&gt;Neovim&lt;/a&gt; is my favorite text editor. I use it on a daily basis for multiple purposes:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;To write Scala code (and the occasional Typescript) for $work.&lt;/li&gt;
+  &lt;li&gt;To write the extensive text and code for &lt;a href=&quot;https://leanpub.com/u/gvolpe&quot;&gt;my books&lt;/a&gt;.&lt;/li&gt;
+  &lt;li&gt;To fine-tune my ever-changing &lt;a href=&quot;https://github.com/gvolpe/nix-config&quot;&gt;NixOS configuration&lt;/a&gt;.&lt;/li&gt;
+  &lt;li&gt;To write blog posts such as this one.&lt;/li&gt;
+  &lt;li&gt;For the casual Haskell and Rust code I sometimes need to write.&lt;/li&gt;
+  &lt;li&gt;Literally for any other text file I need to explore and modify.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;All this functionality is enabled by many plugins configured and tailored to my needs. Now there exist a bunch of plugin managers to handle the installation of plugins, from the classic &lt;a href=&quot;https://github.com/junegunn/vim-plug&quot;&gt;vim-plug&lt;/a&gt; to the more esoteric &lt;a href=&quot;https://github.com/folke/lazy.nvim&quot;&gt;lazy.nvim&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;On the other side we have Nix, which strives for reproducibility at all costs. Among the many packages in &lt;code&gt;nixpkgs&lt;/code&gt;, &lt;a href=&quot;https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/editors/neovim/default.nix&quot;&gt;Neovim&lt;/a&gt; has been around for a while. Furthermore, there exist &lt;a href=&quot;https://github.com/NixOS/nixpkgs/tree/master/pkgs/applications/editors/vim/plugins&quot;&gt;many derivations&lt;/a&gt; so that plugins can also be installed via Nix.&lt;/p&gt;
+
+&lt;p&gt;Home Manager users can install and configure Neovim with any desired plugin via its &lt;a href=&quot;https://nix-community.github.io/home-manager/options.html#opt-programs.neovim.enable&quot;&gt;officially supported module&lt;/a&gt;. Or it can also be installed directly on NixOS. In either case, everything comes from the &lt;code&gt;nixpkgs&lt;/code&gt; repository.&lt;/p&gt;
+
+&lt;p&gt;The only downside of relying on plugins defined in &lt;code&gt;nixpkgs&lt;/code&gt; is that they may get quickly outdated, forcing us to resort to overlays or overrides to actually use the latest version, or that specific fork you would like to test. This problem goes away with the introduction &lt;a href=&quot;https://nixos.wiki/wiki/Flakes&quot;&gt;Nix flakes&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;neovim-flake&quot;&gt;Neovim Flake&lt;/h2&gt;
+
+&lt;p&gt;Up to August 2022, my Neovim configuration was tightly coupled to my Home Manager configuration. It now lives at &lt;a href=&quot;https://github.com/gvolpe/neovim-coc&quot;&gt;neovim-coc&lt;/a&gt;, and it is only there for archival reasons; it is no longer maintained.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/neovim-flake.png&quot; alt=&quot;flake&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;It was back then when I started &lt;a href=&quot;https://github.com/gvolpe/neovim-flake&quot;&gt;Neovim Flake&lt;/a&gt; as a fork of &lt;a href=&quot;https://github.com/jordanisaacs&quot;&gt;Jordan Isaacs&lt;/a&gt;’ flake. I liked the flakes approach for individual applications so much that I soon started making countless changes to adapt it to my needs and liking. It changed so much that you wouldn’t recognize it from the fork.&lt;/p&gt;
+
+&lt;p&gt;Nowadays, it is my default Neovim configuration, and I would like to share with you what’s so special about it.&lt;/p&gt;
+
+&lt;p&gt;Flakes consist of &lt;em&gt;inputs&lt;/em&gt; and &lt;em&gt;outputs&lt;/em&gt;. For instance, here are some inputs declared in the &lt;code&gt;flake.nix&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;inputs =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:nixos/nixpkgs/nixpkgs-unstable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    flake-utils&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:numtide/flake-utils&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;nmd =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;gitlab:rycee/nmd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;flake =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;nvim-lspconfig =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:neovim/nvim-lspconfig&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;flake =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;nvim-treesitter =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:nvim-treesitter/nvim-treesitter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;flake =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The first two inputs correspond to &lt;code&gt;nixpkgs&lt;/code&gt; (the version we want to use for all the packages) and &lt;code&gt;flake-utils&lt;/code&gt; (to make it compatible with Linux and Mac, among other platforms). The third input &lt;code&gt;nmd&lt;/code&gt; serves the purpose of generating documentation for the Nix modules, as we will see soon. Ultimately, the remaining inputs correspond to Neovim plugins pointing directly to their source (there are many more declared in this flake).&lt;/p&gt;
+
+&lt;p&gt;The outputs can be displayed by running &lt;code&gt;nix flake show&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake show
+git+file:///home/gvolpe/workspace/neovim-flake
+├───apps
+│   ├───aarch64-darwin
+│   │   ├───default: app
+│   │   └───nvim: app
+│   ├───aarch64-linux
+│   │   ├───default: app
+│   │   └───nvim: app
+│   ├───x86_64-darwin
+│   │   ├───default: app
+│   │   └───nvim: app
+│   └───x86_64-linux
+│       ├───default: app
+│       └───nvim: app
+├───devShells
+│   └───x86_64-linux
+│       └───default: development environment &lt;span class=&quot;s1&quot;&gt;&amp;#39;nix-shell&amp;#39;&lt;/span&gt;
+├───nixosModules
+│   └───x86_64-linux: NixOS module
+├───overlays
+│   └───x86_64-linux: Nixpkgs overlay
+└───packages
+    └───x86_64-linux
+        ├───default: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;neovim-0.8.1&amp;#39;&lt;/span&gt;
+        ├───docs: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;html-manual&amp;#39;&lt;/span&gt;
+        ├───metals: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;metals-0.11.9&amp;#39;&lt;/span&gt;
+        └───neovim-ide: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;neovim-0.8.1&amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;We will find five different things, all with multi-platform support (only shown in &lt;code&gt;apps&lt;/code&gt;, and omitted for brevity in all the other cases).&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code&gt;apps&lt;/code&gt;: any program that can run via &lt;code&gt;nix run&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;devShells&lt;/code&gt;: development shells that can be used via &lt;code&gt;nix develop&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;nixosModules&lt;/code&gt;: modules that can be imported into your Nix system.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;overlays&lt;/code&gt;: custom packages and functions you can import into your configuration.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;packages&lt;/code&gt;: any package that can be built via &lt;code&gt;nix build&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;This is the command we use when the project is checked out locally, but it can be done remotely too.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake show github:gvolpe/neovim-flake&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;In the same spirit, you can try this Neovim out with its &lt;a href=&quot;https://github.com/gvolpe/neovim-flake/blob/main/lib/neovim-ide-full.nix&quot;&gt;default configuration and enabled plugins&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix run github:gvolpe/neovim-flake&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;However, we all have different preferences, so it is normal to wish we could tweak a few settings here and there. This is made possible by the module explained in the following section.&lt;/p&gt;
+
+&lt;h3 id=&quot;home-manager-module&quot;&gt;Home Manager module&lt;/h3&gt;
+
+&lt;p&gt;The &lt;code&gt;nixosModules&lt;/code&gt; output exposes a Home Manager module we can import into our configuration.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;imports =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; neovim-flake&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixosModules&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;hm &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Once imported, we can use the module in our configuration as follows.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  programs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;neovim-ide =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;settings =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;viAlias =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;vimAlias =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;lsp =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It’s called &lt;code&gt;neovim-ide&lt;/code&gt; because it is a batteries included Neovim configuration with LSP support for various languages, but emphasizing the Scala programming language. Here’s an example:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;lsp =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;scala =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;metals =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;metalsBuilder &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;version =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;0.11.9+235-2f0e69f8-SNAPSHOT&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;outputHash =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;sha256-9ZJ5bew+ttAr+K9vsM6DKP4G0dcAEXyBYizNA7BeeG8=&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;type =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;nvim-metals&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It is set to use the amazing &lt;a href=&quot;https://github.com/scalameta/nvim-metals&quot;&gt;nvim-metals&lt;/a&gt;, and the latest snapshot of Metals. We use &lt;code&gt;pkgs.metalsBuilder&lt;/code&gt; to build a custom Metals version, which is a function exposed by the &lt;code&gt;overlays&lt;/code&gt; output. In order to use it, we need to add it to our configuration. For example:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; nixpkgs &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;overlays =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; neovim-flake&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;overlays&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;default &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The module is not final by any means, and it could certainly be improved, but it is perfect for my use cases. Ultimately, adding new modules is quite straightforward via a pull request.&lt;/p&gt;
+
+&lt;p&gt;For example, here’s the module for the &lt;code&gt;hop&lt;/code&gt; plugin.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;with&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;cfg =&lt;/span&gt; config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;hop&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  options&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;hop =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; mkOption &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;type =&lt;/span&gt; types&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;bool&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;description =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Enable Hop plugin (easy motion)&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;config =&lt;/span&gt; mkIf cfg&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;enable &lt;span class=&quot;p&quot;&gt;({&lt;/span&gt;
+    vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;startPlugins =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;neovimPlugins&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;hop &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+
+    vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;nnoremap =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;s2&quot;&gt;&amp;quot;&amp;lt;leader&amp;gt;h&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&amp;lt;cmd&amp;gt; HopPattern&amp;lt;CR&amp;gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    vim&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;luaConfigRC =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;      require(&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;hop&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;).setup()&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Have a look at all the existing &lt;a href=&quot;https://github.com/gvolpe/neovim-flake/tree/main/modules&quot;&gt;modules&lt;/a&gt; for more details.&lt;/p&gt;
+
+&lt;h4 id=&quot;documentation&quot;&gt;Documentation&lt;/h4&gt;
+
+&lt;p&gt;Home Manager users are accustomed to access the &lt;a href=&quot;https://nix-community.github.io/home-manager/options.html&quot;&gt;DocBook documentation&lt;/a&gt; for all the available options in a specific module. NixOS users enjoy an even &lt;a href=&quot;https://search.nixos.org/options&quot;&gt;better experience&lt;/a&gt;. Thanks to Robert Helgesson’s &lt;a href=&quot;https://gitlab.com/rycee/nmd/&quot;&gt;nmd&lt;/a&gt;, this Neovim Flake HM module is also documented at &lt;a href=&quot;https://gvolpe.com/neovim-flake/&quot;&gt;gvolpe.com/neovim-flake&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;For instance, the &lt;a href=&quot;https://gvolpe.com/neovim-flake/options.html#opt-vim.lsp.scala.enable&quot;&gt;vim.lsp.scala&lt;/a&gt; options look as follows.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/vim-scala-docs.png&quot; alt=&quot;docs&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;updates&quot;&gt;Updates&lt;/h3&gt;
+
+&lt;p&gt;So far, we have seen how it can be used and configured, but haven’t talked about one of its greatest benefits: updates. To update all inputs to their latest version, we can run the following command.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake update&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;However, this is undesirable most of the time, as some plugins may break and we would not notice until we test that particular plugin, which may happen weeks after this update was performed.&lt;/p&gt;
+
+&lt;p&gt;In most cases, it is recommended to update a specific plugin at a time, to test it in isolation. For example:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake lock --update-input nvim-metals
+warning: updating lock file &lt;span class=&quot;s1&quot;&gt;&amp;#39;/home/gvolpe/workspace/neovim-flake/flake.lock&amp;#39;&lt;/span&gt;:
+• Updated input &lt;span class=&quot;s1&quot;&gt;&amp;#39;nvim-metals&amp;#39;&lt;/span&gt;:
+    &lt;span class=&quot;s1&quot;&gt;&amp;#39;github:scalameta/nvim-metals/b7587a9155d22761f1b28c18f7927e6df0d08387&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;2022-09-05&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  → &lt;span class=&quot;s1&quot;&gt;&amp;#39;github:scalameta/nvim-metals/d1c01907256dae7c9d55ba1fcfb8cf6b4f583325&amp;#39;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;2022-12-09&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The &lt;code&gt;flake.lock&lt;/code&gt; file is the one keeping track of the specific versions we declare in our &lt;code&gt;flake.nix&lt;/code&gt; file. Once this plugin is updated, we can try to build it via &lt;code&gt;nix build&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Still, it would be more interesting to test the plugin actually works with a quick manual test. To do so, we can head to any Scala project directory, and run this version of the Neovim flake there.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; ../my-scala-project
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix run ../neovim-flake&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;That is all it takes! Isn’t this wonderful?&lt;/p&gt;
+
+&lt;p&gt;This approach allows us to use whatever plugin we want in whatever version (at least most of them).&lt;/p&gt;
+
+&lt;h3 id=&quot;tree-sitter-plugins&quot;&gt;Tree-sitter plugins&lt;/h3&gt;
+
+&lt;p&gt;Folks who rely on &lt;a href=&quot;https://github.com/tree-sitter/tree-sitter&quot;&gt;Tree-sitter&lt;/a&gt;, know that its installation with the many different grammars is not as trivial. Yet, Nix makes the management of tree-sitter grammars reproducible and easy to install.&lt;/p&gt;
+
+&lt;p&gt;For example, these are some of the inputs I declare to use the &lt;code&gt;tree-sitter-scala&lt;/code&gt; fork from Eugene.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;inputs =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    ts-build&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:pta2002/build-ts-grammar.nix&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;tree-sitter-scala =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:eed3si9n/tree-sitter-scala/fork-integration&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;flake =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This is then treated specially by a library function defined by the Neovim Flake.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;tree-sitter-scala3 =&lt;/span&gt; inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;ts-build&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;buildGrammar pkgs &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;language =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;scala&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;version =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;eed3si9n-fork&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;source =&lt;/span&gt; inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;tree-sitter-scala&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;ts =&lt;/span&gt; prev&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;tree-sitter&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;override &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;extraGrammars =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; tree-sitter-scala3&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;treesitterGrammars =&lt;/span&gt; ts&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;withPlugins &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;p&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+    p&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;tree-sitter-scala3
+    p&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;tree-sitter-nix
+    p&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;tree-sitter-elm
+  &lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;You can quickly look at the available grammars with the following command.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix search nixpkgs tree-sitter-grammars
+* legacyPackages.x86_64-linux.tree-sitter-grammars.tree-sitter-bash &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.20.7&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+* legacyPackages.x86_64-linux.tree-sitter-grammars.tree-sitter-beancount &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.20.7&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+* legacyPackages.x86_64-linux.tree-sitter-grammars.tree-sitter-bibtex &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.20.7&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+* legacyPackages.x86_64-linux.tree-sitter-grammars.tree-sitter-c &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;0.20.7&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;There are always plugins that require special treatment, but that’s not a blocker. For instance, the Smithy grammar requires the highlights file to be copied manually for some reason, but Nix makes it easy to automate this trivial task in a reproducible way.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;nvimTreesitterHook =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    rm -r parser&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    ln -s &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;treesitterGrammars&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt; parser&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    mkdir -p $out/queries/smithy&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    cp &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;ts&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;builtGrammars&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;tree-sitter-smithy&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;/queries/highlights.scm $out/queries/smithy/highlights.scm&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;In most cases, building your custom tree-sitter grammar should be as simple as the &lt;code&gt;tree-sitter-scala&lt;/code&gt; one.&lt;/p&gt;
+
+&lt;h3 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h3&gt;
+
+&lt;p&gt;If you are still hesitating over using Nix, this blog post laid out another compelling use case :)&lt;/p&gt;
+
+&lt;p&gt;Give it a try (drop it a 🌟 if you enjoy it!) and if you need any help, reach out via the &lt;a href=&quot;https://github.com/gvolpe/neovim-flake/discussions&quot;&gt;discussions&lt;/a&gt; section.&lt;/p&gt;
+
+&lt;p&gt;Merry Xmas,
+Gabriel.&lt;/p&gt;
+
+</description>
+        <pubDate>Sun, 25 Dec 2022 13:45:00 +0000</pubDate>
+        <link>https://gvolpe.github.io/blog/neovim-meets-nix-flakes/</link>
+        <guid isPermaLink="true">https://gvolpe.github.io/blog/neovim-meets-nix-flakes/</guid>
+        
+        
+        <category>neovim,</category>
+        
+        <category>nix,</category>
+        
+        <category>flakes,</category>
+        
+        <category>treesitter,</category>
+        
+        <category>scala</category>
+        
+      </item>
     
       <item>
         <title>Scala 3: the missing compiler plugin</title>
@@ -2414,228 +2723,6 @@ Gabriel.&lt;/p&gt;
         <category>purescript,</category>
         
         <category>scala</category>
-        
-      </item>
-    
-      <item>
-        <title>Setting up Ghcide in Ubuntu with Nixpkgs</title>
-        <description>&lt;p&gt;If you use &lt;a href=&quot;https://ubuntu.com/&quot;&gt;Ubuntu&lt;/a&gt; or any other Linux distribution (AKA &lt;em&gt;distro&lt;/em&gt;) together with &lt;a href=&quot;https://nixos.org/nixpkgs/&quot;&gt;Nixpkgs&lt;/a&gt;, you might have noticed things don’t play so well together. Nixpkgs has been mainly designed to work seamlessly in &lt;a href=&quot;https://nixos.org/nixos/&quot;&gt;Nix OS&lt;/a&gt;; other distros are second class citizens.&lt;/p&gt;
-
-&lt;p&gt;Quoting the &lt;a href=&quot;https://github.com/digital-asset/ghcide&quot;&gt;Ghcide&lt;/a&gt; repository, it is defined as:&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;A library for building Haskell IDE tooling&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;It is not defined as an IDE, because it only has a subset of the features &lt;a href=&quot;https://github.com/haskell/haskell-ide-engine&quot;&gt;HIE (Haskell IDE Engine)&lt;/a&gt; has. However, the good news is that the HIE and Ghcide teams are joining forces to create &lt;a href=&quot;https://neilmitchell.blogspot.com/2020/01/one-haskell-ide-to-rule-them-all.html&quot;&gt;One Haskell IDE to rule them all&lt;/a&gt;!&lt;/p&gt;
-
-&lt;p&gt;For what it’s worth, I’ve been using HIE for a while together with my favorite text editor, &lt;a href=&quot;https://neovim.io/&quot;&gt;NeoVim&lt;/a&gt;. It’s got a lot of cool features but it’s been quite buggy, in my experience.&lt;/p&gt;
-
-&lt;p&gt;Ghcide only offers a few features that work flawlessly, and my experience has been great so far. Though, setting it up to work properly in NeoVim on Ubuntu when all your software has been installed using Nixpkgs hasn’t been easy at all.&lt;/p&gt;
-
-&lt;iframe width=&quot;680&quot; height=&quot;350&quot; src=&quot;https://www.youtube.com/embed/6bP_cpJkzdg&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;
-
-&lt;p&gt;This is the reason why I am writing this blog post. Aim at those who use Nixpkgs like me, in a different distro other than NixOS.&lt;/p&gt;
-
-&lt;h2 id=&quot;installing-ghcide&quot;&gt;Installing Ghcide&lt;/h2&gt;
-
-&lt;p&gt;If you go to the main Ghcide repository, you’ll find instructions on how to install it. For those using Nix, it is officially recommended using &lt;a href=&quot;https://github.com/hercules-ci/ghcide-nix&quot;&gt;Ghcide-Nix&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;If everything went well, you will find its binary in your Nix profile.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;λ&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;~&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;which&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ghcide&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;home&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gvolpe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;profile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ghcide&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;To verify Ghcide works, go to any Haskell project or standalone files, and run &lt;code&gt;ghcide&lt;/code&gt;.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;λ&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;~&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ghcide&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;ghcide&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;mf&quot;&gt;0.1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;GHC:&lt;/span&gt; &lt;span class=&quot;mf&quot;&gt;8.6&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;PATH:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;store&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;02&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;wcifqr53wjs1m5vn670b1avfy071az&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ghcide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;exe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ghcide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ghcide&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Ghcide&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;setup&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tester&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;workspace&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;oss&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;types&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Report&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bugs&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;at&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;https&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;://&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;github&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;com&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;digital&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;asset&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ghcide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;issues&lt;/span&gt;
-
-&lt;span class=&quot;kt&quot;&gt;Step&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Finding&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;files&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;workspace&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;oss&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;types&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matter&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Found&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;files&lt;/span&gt;
-
-&lt;span class=&quot;kt&quot;&gt;Step&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Looking&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hie&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;yaml&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;files&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;that&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;control&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;setup&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Found&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cradle&lt;/span&gt;
-
-&lt;span class=&quot;kt&quot;&gt;Step&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Cradle&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Loading&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;workspace&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;oss&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;types&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hie&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;yaml&lt;/span&gt;
-
-&lt;span class=&quot;kt&quot;&gt;Step&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Cradle&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Loading&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GHC&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Session&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Warning:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;The&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;package&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;&amp;#39;hackage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;haskell&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;org&amp;#39;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;15&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;days&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;old&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Run&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;&amp;#39;cabal&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;update&amp;#39;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;get&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;the&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;latest&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;list&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;of&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;available&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;packages&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Resolving&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dependencies&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Build&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;profile&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;w&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ghc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;8.6&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;O1&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;In&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;order&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;the&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;following&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;will&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;be&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;built&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;more&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;details&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;  &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;types&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.0&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lib&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;configuration&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;changed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Configuring&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;library&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;types&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;
-&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Preprocessing&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;library&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;types&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;ghcide&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;command&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;line&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cannot&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;satisfy&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;package&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;refined&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ea7ce6a6d7ef3587351a3b3bdc4140a3a7bcd0f526627e28a7d5d456e39e9aa9&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;refined&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ea7ce6a6d7ef3587351a3b3bdc4140a3a7bcd0f526627e28a7d5d456e39e9aa9&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;unusable&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;due&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;missing&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dependencies&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt;
-      &lt;span class=&quot;kt&quot;&gt;QuickCheck&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;2.13&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;aa3fcd8ac86c93ae5db4035083dd975e5b8f88ea826f8604a5748a04c7798bd&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;aeson&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;1.4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;6.0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a4c86def05154b3acabc0a30d0acd96d235de9d3fd7ba28330e785107e8f5da&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exceptions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;2e686&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fdff7a6bdbd62e24641169087c094e991de8ab3f6381a859306fd258e32&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mtl&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;2.2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;prettyprinter&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;1.3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;08&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f8b1f2cf2a49ae7d9056e4ed9fbb3f75b812f789dbb30ab5e82b53b6cc42c8&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;transformers&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;6.2&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;use&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;more&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;information&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Yes, you may get a similar output. So let’s make it clear.&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;All software installed by Nix works better within a Nix Shell.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;You hear me. If you want this to work, make sure to you have a Nix Shell set up for your project and even run your text editor within a Nix Shell. &lt;em&gt;This is the only sane way&lt;/em&gt;.&lt;/p&gt;
-
-&lt;h3 id=&quot;configuring-nix-shell&quot;&gt;Configuring Nix Shell&lt;/h3&gt;
-
-&lt;p&gt;Nix shell is amazing! It creates an environment where all the necessary software is installed. Once you’re done, you leave the shell and come back to your regular terminal. This way we avoid polluting our global environment, i.e. installing unnecessary global software such as Ruby, Node.js, etc.&lt;/p&gt;
-
-&lt;p&gt;Now, there are many ways to properly set up a Nix Shell for a Haskell project. I personally like to use &lt;a href=&quot;https://github.com/NixOS/cabal2nix&quot;&gt;Cabal2Nix&lt;/a&gt; to Nixify my &lt;a href=&quot;https://github.com/haskell/cabal&quot;&gt;Cabal&lt;/a&gt; projects. It basically creates a derivation with all the Haskell packages we need. Here’s an example:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; mkDerivation&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; aeson&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; async&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; base&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; bytestring&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; co-log-core
-&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; containers&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; dhall&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; exceptions&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; hedis&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; postgresql-simple
-&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; raw-strings-qq&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; refined&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; servant&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; servant-server&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; stdenv
-&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; template-haskell&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; text&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; uuid&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; wai&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; wai-cors&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; warp&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; wreq
-&lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
-mkDerivation &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;pname =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;shopping-cart&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;version =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;0.1.0.0&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;src =&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/.&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;isLibrary =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;isExecutable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;libraryHaskellDepends =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
-    aeson async base bytestring co-log-core containers dhall exceptions
-    hedis postgresql-simple raw-strings-qq refined servant
-    servant-server template-haskell text uuid wai wai-cors warp wreq
-  &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;executableHaskellDepends =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; base &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;description =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;The Shopping Cart developed in PFP Scala for Haskell&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;license =&lt;/span&gt; stdenv&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;licenses&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;asl20&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;This derivation belongs in the &lt;code&gt;shopping-cart.nix&lt;/code&gt; file, and it was created from a &lt;code&gt;shopping-cart.cabal&lt;/code&gt; file as follows:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;cabal2nix&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;shopping&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cart&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nix&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;In my current set up, I have three other Nix files that are needed in order to properly run this project within a Nix Shell: &lt;code&gt;default.nix&lt;/code&gt;, &lt;code&gt;release.nix&lt;/code&gt;, and &lt;code&gt;shell.nix&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;This is the content of &lt;code&gt;default.nix&lt;/code&gt;, which indicates what GHC version we need:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; nixpkgs &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;&amp;lt;nixpkgs&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{},&lt;/span&gt; compiler &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;ghc865&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
-nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;haskell&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;packages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;compiler&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;callPackage &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/shopping-cart.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Next is the content of &lt;code&gt;release.nix&lt;/code&gt;, which only refers to &lt;code&gt;default.nix&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;&amp;lt;nixpkgs&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
-  pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;haskellPackages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;callPackage &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/default.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Finally, the most important one, &lt;code&gt;shell.nix&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; nixpkgs &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;&amp;lt;nixpkgs&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;nixpkgs&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;pkgs&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; haskellPackages&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-
-  &lt;span class=&quot;ss&quot;&gt;project =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/release.nix&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
-pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;stdenv&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkDerivation &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;name =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;shell&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;buildInputs =&lt;/span&gt; project&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;env&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nativeBuildInputs &lt;span class=&quot;o&quot;&gt;++&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
-    haskellPackages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;cabal-install
-    haskellPackages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;hlint
-  &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;shellHook =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;    export NIX_GHC=&amp;quot;$(which ghc)&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;    export NIX_GHCPKG=&amp;quot;$(which ghc-pkg)&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;    export NIX_GHC_DOCDIR=&amp;quot;$NIX_GHC/../../share/doc/ghc/html&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;    export NIX_GHC_LIBDIR=&amp;quot;$(ghc --print-libdir)&amp;quot;&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;  &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;The important part here is our &lt;code&gt;shellHook&lt;/code&gt;, which exports a few environment variables needed to get GHC properly detected by Nixpkgs within a Nix Shell.&lt;/p&gt;
-
-&lt;p&gt;Furthermore, these Nix files could probably be simplified into two files or maybe a single one but, to be honest, I haven’t bothered in trying to do so. Nix is amazing when it works but, when it doesn’t, it’s a huge pain to find out what’s going on.&lt;/p&gt;
-
-&lt;p&gt;You can find all these Nix files in this &lt;a href=&quot;https://github.com/gvolpe/shopping-cart-haskell&quot;&gt;Github repository&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h2 id=&quot;troubleshooting&quot;&gt;Troubleshooting&lt;/h2&gt;
-
-&lt;p&gt;There could be a lot of different things going wrong. We have seen a first common error above, but there could be a few others. Find below a summary of common issues.&lt;/p&gt;
-
-&lt;h3 id=&quot;error-1&quot;&gt;Error #1&lt;/h3&gt;
-
-&lt;p&gt;The following error is one of the most common ones:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;cannot&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;satisfy&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;package&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;id&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ghc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;8.6&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;I have reported &lt;a href=&quot;https://github.com/digital-asset/ghcide/issues/439&quot;&gt;this issue&lt;/a&gt;. This seems to happen because the GHC version detected by Ghcide is not the same it is expected by the Cabal project. Fortunately, this is fixed by the export of the environment variables defined in our &lt;code&gt;shellHook&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;Notice that the error message might show a different package, such as &lt;code&gt;aeson&lt;/code&gt;, not only &lt;code&gt;ghc&lt;/code&gt;. The fix seems to be the same, though.&lt;/p&gt;
-
-&lt;h3 id=&quot;error-2&quot;&gt;Error #2&lt;/h3&gt;
-
-&lt;p&gt;You may get a lot of the following errors as well:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kt&quot;&gt;Step&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;checking&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;the&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;files&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;File:&lt;/span&gt;     &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;workspace&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;oss&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shopping&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cart&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;haskell&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Main&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hs&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Hidden:&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;no&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Range:&lt;/span&gt;    &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;17&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;28&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Source:&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;found&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Severity:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;DsError&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Message:&lt;/span&gt;
-  &lt;span class=&quot;kt&quot;&gt;Could&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;find&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;module&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;‘&lt;/span&gt;&lt;span class=&quot;nn&quot;&gt;Http.Server&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;’&lt;/span&gt;
-  &lt;span class=&quot;kt&quot;&gt;It&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;module&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;the&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;current&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;program,&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;any&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;known&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;package.&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;This is normally fixed by creating a specific &lt;code&gt;hie.yaml&lt;/code&gt; file, indicating &lt;a href=&quot;https://github.com/mpickering/hie-bios&quot;&gt;hie-bios&lt;/a&gt; how to read our project. Here’s the one defined in the Shopping Cart project:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;l-Scalar-Plain&quot;&gt;cradle&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p-Indicator&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;cabal&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p-Indicator&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;component&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;lib:shopping-cart&amp;quot;&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;}}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;You will still get the same error with your &lt;code&gt;Setup.hs&lt;/code&gt; file, defined by Cabal:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kt&quot;&gt;Message:&lt;/span&gt;
-  &lt;span class=&quot;kt&quot;&gt;Could&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;not&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;load&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;module&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;‘&lt;/span&gt;&lt;span class=&quot;nn&quot;&gt;Distribution.Simple&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;’&lt;/span&gt;
-  &lt;span class=&quot;kt&quot;&gt;It&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;member&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;of&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;the&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hidden&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;package&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;‘&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Cabal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;2.4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.1&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;’&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
-  &lt;span class=&quot;kt&quot;&gt;Perhaps&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;you&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;need&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;add&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;‘&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Cabal&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;’&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;to&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;the&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;build&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;depends&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;your&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cabal&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;Files&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;that&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;failed&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt;
- &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;workspace&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;oss&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shopping&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cart&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;haskell&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Setup&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hs&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;However, it doesn’t matter. Ghcide will still work in our project; this is not an issue.&lt;/p&gt;
-
-&lt;h3 id=&quot;error-3&quot;&gt;Error #3&lt;/h3&gt;
-
-&lt;p&gt;The following error is somewhat a nasty one:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kt&quot;&gt;Error&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ghcide&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;command&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;line&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;can&amp;#39;t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;load&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;so&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;DLL&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;If you stumble upon this one, make sure to update to the latest version. I had this error, which is reported &lt;a href=&quot;https://github.com/digital-asset/ghcide/issues/404&quot;&gt;here&lt;/a&gt;, and got it fixed after updating Ghcide.&lt;/p&gt;
-
-&lt;h2 id=&quot;bonus-track&quot;&gt;Bonus Track&lt;/h2&gt;
-
-&lt;p&gt;As I have got used to having a linter and a formatter integrated in NeoVim when using HIE, I kind of miss these features, which are probably going to land in the future Haskell IDE as plugins.&lt;/p&gt;
-
-&lt;p&gt;So I came up with a few (temporary) commands to get &lt;a href=&quot;https://github.com/ndmitchell/hlint&quot;&gt;HLint&lt;/a&gt; and &lt;a href=&quot;https://github.com/lspitzner/brittany/&quot;&gt;Brittany&lt;/a&gt; integrated in NeoVim.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-vim&quot; data-lang=&quot;vim&quot;&gt;&lt;span class=&quot;nb&quot;&gt;nnoremap&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt;leader&lt;span class=&quot;p&quot;&gt;&amp;gt;&lt;/span&gt;af :&lt;span class=&quot;k&quot;&gt;r&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;!&lt;/span&gt;brittany &lt;span class=&quot;p&quot;&gt;--&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;mode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;=&lt;/span&gt;inplace %:&lt;span class=&quot;k&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt;CR&lt;span class=&quot;p&quot;&gt;&amp;gt;&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;nnoremap&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt;leader&lt;span class=&quot;p&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;al&lt;/span&gt; :AsyncRun hlint %:&lt;span class=&quot;k&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt;CR&lt;span class=&quot;p&quot;&gt;&amp;gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;The first one runs &lt;code&gt;brittany&lt;/code&gt; on the current file in the buffer and applies its output &lt;em&gt;inplace&lt;/em&gt;. The latter runs &lt;code&gt;hlint&lt;/code&gt;
-for the current file in the buffer and it displays its result in a quickfix window. It uses the &lt;a href=&quot;https://github.com/skywind3000/asyncrun.vim&quot;&gt;asyncrun.vim&lt;/a&gt; plugin.&lt;/p&gt;
-
-&lt;p&gt;If you are interested in my full configuration, you can find it &lt;a href=&quot;https://github.com/gvolpe/nix-config&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;The future of IDEs in Haskell is only getting brighter :)&lt;/p&gt;
-
-&lt;p&gt;Gabriel.&lt;/p&gt;
-</description>
-        <pubDate>Sat, 21 Mar 2020 19:28:00 +0000</pubDate>
-        <link>https://gvolpe.github.io/blog/setting-up-ghcide-nixpkgs-ubuntu/</link>
-        <guid isPermaLink="true">https://gvolpe.github.io/blog/setting-up-ghcide-nixpkgs-ubuntu/</guid>
-        
-        
-        <category>haskell,</category>
-        
-        <category>nix,</category>
-        
-        <category>ide</category>
         
       </item>
     
