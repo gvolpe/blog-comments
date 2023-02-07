@@ -5,9 +5,176 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 25 Dec 2022 12:46:19 +0000</pubDate>
-    <lastBuildDate>Sun, 25 Dec 2022 12:46:19 +0000</lastBuildDate>
+    <pubDate>Tue, 07 Feb 2023 19:27:53 +0000</pubDate>
+    <lastBuildDate>Tue, 07 Feb 2023 19:27:53 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Garnix CI</title>
+        <description>&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://garnix.io/&quot;&gt;Garnix&lt;/a&gt; is a continuous integration (CI) service for Nix flakes that has been in Beta for a while. In their own words:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;With Nix-specific optimizations, Garnix makes CI with Nix fast — a few seconds for no-op changes. Easy to setup, too — if you have a flake.nix, you are ready to go. And we provide the build results as a cache, so you don’t have to build things locally. To top it all up, we run on 100% renewable energy. Because CI should bring you peace of mind.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;My &lt;a href=&quot;https://github.com/settings/installations&quot;&gt;Github settings&lt;/a&gt; tell me I have installed the Garnix CI app in March 2022 and it’s been running alongside my GHA (Github Actions) workflows ever since. However, I haven’t really reaped its benefits until now.&lt;/p&gt;
+
+&lt;p&gt;Once you install the Garnix CI app in your Github account and enable the repositories where you want it to run, you’ll notice that it will automatically detect a &lt;code&gt;flake.nix&lt;/code&gt; and it will evaluate its packages, dev shells, checks and NixOS configurations. Still, this is all configurable per repository via a &lt;a href=&quot;https://github.com/gvolpe/nix-config/blob/master/garnix.yaml&quot;&gt;garnix.yaml&lt;/a&gt; file.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/garnix-app.png&quot; alt=&quot;app&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The &lt;code&gt;homeConfigurations&lt;/code&gt; output is &lt;a href=&quot;https://github.com/garnix-io/issues/issues/24&quot;&gt;not yet supported&lt;/a&gt;, but it’s in the plans. A current workaround is to expose these as &lt;code&gt;packages&lt;/code&gt; instead, as I have in my flake’s outputs.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;outputs =&lt;/span&gt; inputs&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;x86_64-linux&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;ci =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/ci.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;home =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/home-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;homeConfigurations =&lt;/span&gt; home&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+      &lt;span class=&quot;ss&quot;&gt;nixosConfigurations =&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/nixos-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+      packages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;system&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;ci&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; metals metals-updater&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;home-edp =&lt;/span&gt; home&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gvolpe-edp&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;activationPackage&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;home-hdmi =&lt;/span&gt; home&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gvolpe-hdmi&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;activationPackage&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The downside of doing this is that building the Home Manager configurations requires &lt;a href=&quot;https://nixos.wiki/wiki/Import_From_Derivation&quot;&gt;Import From Derivation (IFD)&lt;/a&gt; (at least in my case) even for &lt;code&gt;nix flake show&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake show --allow-import-from-derivation
+git+file:///home/gvolpe/workspace/nix-config?ref&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;...
+├───homeConfigurations: unknown
+├───nixosConfigurations
+│   ├───dell-xps: NixOS configuration
+│   └───tongfang-amd: NixOS configuration
+└───packages
+    └───x86_64-linux
+        ├───home-edp: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;home-manager-generation&amp;#39;&lt;/span&gt;
+        ├───home-hdmi: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;home-manager-generation&amp;#39;&lt;/span&gt;
+        ├───metals: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;metals-0.11.10+111-59a1b932-SNAPSHOT&amp;#39;&lt;/span&gt;
+        └───metals-updater: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;metals-updater-script&amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Nevertheless, I believe the pros greatly outweigh the cons.&lt;/p&gt;
+
+&lt;p&gt;Here’s the &lt;a href=&quot;https://github.com/gvolpe/nix-config/pull/162/files&quot;&gt;pull request&lt;/a&gt; I made to completely remove the GHA workflows for my configuration (including Cachix) and use Garnix instead. The build times are insanely fast!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/garnix-actions.png&quot; alt=&quot;actions&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Building my Home Manager configuration used to take about &lt;strong&gt;7m 30s&lt;/strong&gt; with my previous setup. With Garnix, it built in &lt;strong&gt;1m 45s&lt;/strong&gt; the first time, but it only took about &lt;strong&gt;26s&lt;/strong&gt; in subsequent runs by leveraging its binary cache!&lt;/p&gt;
+
+&lt;p&gt;The dashboard is quite minimalistic and could use some improvements, but the service is still in Beta :)&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/garnix-home.png&quot; alt=&quot;home&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;If we click on the status of any build, we can see the logs whenever available.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/garnix-logs.png&quot; alt=&quot;logs&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;There are a few tickets raised in their &lt;a href=&quot;https://github.com/garnix-io/issues/issues&quot;&gt;issue tracker&lt;/a&gt; to make it nicer and provide a better user experience, thus I believe it can only get better from now 💪&lt;/p&gt;
+
+&lt;h3 id=&quot;how-does-it-work&quot;&gt;How does it work?&lt;/h3&gt;
+
+&lt;p&gt;How come Garnix does so much better than using plain Nix with a binary cache? It is vaguely explained it in the &lt;a href=&quot;https://garnix.io/docs/steps&quot;&gt;what Garnix CI does&lt;/a&gt; page, which I understand it involves the following steps.&lt;/p&gt;
+
+&lt;p&gt;First of all, it gets all the attribute names of the supported outputs, e.g.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix &lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; .#packages.x86_64-linux --apply builtins.attrNames --json
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;home-edp&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;home-hdmi&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;metals&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;metals-updater&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix &lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; .#nixosConfigurations --apply builtins.attrNames --json
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;dell-xps&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;tongfang-amd&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;According to this, supporting &lt;code&gt;homeConfigurations&lt;/code&gt; should not be that hard, but there may be more to it.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix &lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; .#homeConfigurations --apply builtins.attrNames --json
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;gvolpe-edp&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;gvolpe-hdmi&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Next, it builds every attribute previously collected in &lt;em&gt;parallel&lt;/em&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix build .#metals --json
+&lt;span class=&quot;o&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;drvPath&amp;quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&amp;quot;/nix/store/4kql56jcvr6q0fihw2wqq56gqpf6h9gl-metals-0.11.10+111-59a1b932-SNAPSHOT.drv&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;outputs&amp;quot;&lt;/span&gt;:&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;out&amp;quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&amp;quot;/nix/store/q65x0gng6ni18hfyfbshzr910vlw28rp-metals-0.11.10+111-59a1b932-SNAPSHOT&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;startTime&amp;quot;&lt;/span&gt;:0,&lt;span class=&quot;s2&quot;&gt;&amp;quot;stopTime&amp;quot;&lt;/span&gt;:0&lt;span class=&quot;o&quot;&gt;}]&lt;/span&gt;
+
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix build .#home-hdmi --json
+&lt;span class=&quot;o&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;drvPath&amp;quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&amp;quot;/nix/store/wb31m320kq32b6wvclvdwnq16kgblwz0-home-manager-generation.drv&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;outputs&amp;quot;&lt;/span&gt;:&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;out&amp;quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&amp;quot;/nix/store/1xhxwpcsg97rgmp1hanr8lzszn3hhfd2-home-manager-generation&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;startTime&amp;quot;&lt;/span&gt;:0,&lt;span class=&quot;s2&quot;&gt;&amp;quot;stopTime&amp;quot;&lt;/span&gt;:0&lt;span class=&quot;o&quot;&gt;}]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Finally, it uses the derivation (&lt;code&gt;drvPath&lt;/code&gt;) of the outputs to query the nix log (or other heuristics when not available). I don’t know exactly what this means, but by running the following command:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix show-derivation /nix/store/4kql56jcvr6q0fihw2wqq56gqpf6h9gl-metals-0.11.10+111-59a1b932-SNAPSHOT.drv&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;We get the following attributes: &lt;code&gt;args&lt;/code&gt;, &lt;code&gt;builder&lt;/code&gt;, &lt;code&gt;env&lt;/code&gt;, &lt;code&gt;inputDrvs&lt;/code&gt;, &lt;code&gt;inputSrcs&lt;/code&gt;, &lt;code&gt;outputs&lt;/code&gt;, and &lt;code&gt;system&lt;/code&gt;. I assume it cleverly skips anything that hasn’t changed and builds only what did change, keeping the build times as short as possible, but it’s only a guess.&lt;/p&gt;
+
+&lt;h3 id=&quot;chat-with-julian&quot;&gt;Chat with Julian&lt;/h3&gt;
+
+&lt;p&gt;I reached out to the author of Garnix, &lt;a href=&quot;https://github.com/jkarni&quot;&gt;Julian Arni&lt;/a&gt;, and he kindly got back to me with a very detailed and speedy response, answering all my silly questions. Find them adapted a bit in the following sections.&lt;/p&gt;
+
+&lt;h4 id=&quot;why-is-it-faster&quot;&gt;Why is it faster?&lt;/h4&gt;
+
+&lt;p&gt;There are a few reasons it’s faster:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;The cache is already in the disk, so builds don’t need to push and pull from the cache. Pulling, in particular, tends to take quite a long time, since essentially nothing is there yet. I’ve seen 4-5 minutes of 20 minute CI runs be due to that. By default, Nix will pull even if nothing needs to be built, so even in “do nothing” runs you might end up paying that cost.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;The cache can be shared across projects. With Cachix, each cache is kept separate, because the cache owner can push whatever they want to their cache. Garnix only allows builds that are pure by design, and that it itself has built, to enter the cache. This way, if any project or user has built the package, it’s safe to re-use those artifacts. This is a lot like the &lt;code&gt;cache.nixos.org&lt;/code&gt; builders, and it becomes particularly helpful if packages you depend on are also using Garnix; but even more significant with forks.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Garnix has more powerful machines than Github, and that in turn, enables higher &lt;strong&gt;parallelism&lt;/strong&gt;. Additionally, rather than vCPUs, we use CPU shares. The idea is, if the machine is not busy, you get a really fast machine; that works well for everyone, since then your build is done sooner and the machine is again free (or free-er) for the next build. Throttling the CPU is terrible for overall latency, and the only advantages I can see are more predictable times for users, and easier implementation if you’re using bin-packing schedulers/orchestrators.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h4 id=&quot;whats-the-cache-retention-policy&quot;&gt;What’s the cache retention policy?&lt;/h4&gt;
+
+&lt;p&gt;Regarding the cache, it just serves its own Nix store. A clear retention policy is still in the works, so relying on the cache being available longer term would be a bad idea. However, the current idea looks as follows:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;2-3 days for commits that are no longer the head of any branch.&lt;/li&gt;
+  &lt;li&gt;2 weeks for the head of non-main branches&lt;/li&gt;
+  &lt;li&gt;2-3 months for the head of &lt;code&gt;main&lt;/code&gt; / &lt;code&gt;master&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Once this is determined, it should be properly documented.&lt;/p&gt;
+
+&lt;h3 id=&quot;alternatives&quot;&gt;Alternatives&lt;/h3&gt;
+
+&lt;p&gt;The obvious alternative is Github Actions, which I just migrated away from. Furthermore, there’s also &lt;a href=&quot;https://nixbuild.net/&quot;&gt;Nixbuild&lt;/a&gt;, which is much more than a CI service, but I plan to cover it in a follow-up blog post as I’m still experimenting with it.&lt;/p&gt;
+
+&lt;h3 id=&quot;final-words&quot;&gt;Final words&lt;/h3&gt;
+
+&lt;p&gt;Garnix is a very promising piece of software that can save you plenty of time. If you also enjoy using it and would like to see it succeed like I do, please consider &lt;a href=&quot;https://opencollective.com/garnix_io&quot;&gt;donating&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Julian has also acknowledged that the sign-up process is still a bit confusing, so there are plans to improve it, but honestly I can’t remember about it since I’ve signed up a year ago. If you are giving Garnix a try and find this to be the case, feel free to share your ideas to make it better in their issue tracker.&lt;/p&gt;
+
+&lt;p&gt;Best,
+Gabriel.&lt;/p&gt;
+</description>
+        <pubDate>Tue, 07 Feb 2023 21:45:00 +0000</pubDate>
+        <link>https://gvolpe.github.io/blog/garnix/</link>
+        <guid isPermaLink="true">https://gvolpe.github.io/blog/garnix/</guid>
+        
+        
+        <category>nix,</category>
+        
+        <category>flakes,</category>
+        
+        <category>ci,</category>
+        
+        <category>cache,</category>
+        
+        <category>cachix,</category>
+        
+        <category>garnix</category>
+        
+      </item>
     
       <item>
         <title>Neovim meets Nix flakes</title>
@@ -2556,173 +2723,6 @@ Gabriel.&lt;/p&gt;
         <category>nix-shell,</category>
         
         <category>dhall</category>
-        
-      </item>
-    
-      <item>
-        <title>Parallel typeclass for Haskell</title>
-        <description>&lt;p&gt;As I’m preparing a talk about refinement types I will be giving this Thursday at the &lt;a href=&quot;https://www.meetup.com/FunctionalTricity/events/269763842/&quot;&gt;Functional Tricity Meetup&lt;/a&gt;, and I’ve recently given a &lt;a href=&quot;https://scala.love/gabriel-volpe-why-types-matter/&quot;&gt;similar talk&lt;/a&gt; using the Scala language as well, I realized there is a missing typeclass in Haskell.&lt;/p&gt;
-
-&lt;p&gt;In the following sections, I will be providing examples and use cases for this typeclass to showcase why it would be great to have it in Haskell. Oh, yes… I love refinement types as well!&lt;/p&gt;
-
-&lt;p&gt;In Haskell, we have the &lt;a href=&quot;https://hackage.haskell.org/package/refined&quot;&gt;refined&lt;/a&gt; library and other more complex tools such as &lt;a href=&quot;https://hackage.haskell.org/package/liquidhaskell&quot;&gt;Liquid Haskell&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h3 id=&quot;refinement-types&quot;&gt;Refinement types&lt;/h3&gt;
-
-&lt;p&gt;Refinement types give us the ability to define validation rules, or more commonly called &lt;em&gt;predicates&lt;/em&gt;, at the type level. This means we get compile-time validation whenever the values are known at compile-time.&lt;/p&gt;
-
-&lt;p&gt;Say we have the following predicates and datatype:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Refined&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Age&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Refine&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;GreaterThan&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;17&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;
-&lt;span class=&quot;kr&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Name&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Refine&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;NonEmpty&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;personAge&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Age&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;personName&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Name&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;deriving&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Show&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;We can validate the creation of &lt;code&gt;Person&lt;/code&gt; at compile-time using Template Haskell:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;me&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;me&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;refineTH&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;refineTH&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Gabriel&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;If the age was a number under 18, or the name was an empty string, then our program wouldn’t compile. Isn’t that cool?&lt;/p&gt;
-
-&lt;p&gt;Though, most of the time, we need to validate incoming data from external services, meaning &lt;em&gt;runtime validation&lt;/em&gt;. Refined gives us a bunch of useful functions to achieve this, effectively replacing &lt;em&gt;smart constructors&lt;/em&gt;. The most common one is defined as follows:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;refine&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Predicate&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Either&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;RefineException&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Refined&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;We can then use this function to validate our input data.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mkPerson&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Either&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;RefineException&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;mkPerson&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;do&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;age&lt;/span&gt;  &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;refine&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;refine&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;age&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;However, the program above will short-circuit on the first error, as any other Monad will do. It would be nice if we could validate all our inputs in parallel and accumulates errors, wouldn’t it?&lt;/p&gt;
-
-&lt;p&gt;We can achieve this by converting our &lt;code&gt;Either&lt;/code&gt; values given by &lt;code&gt;refine a&lt;/code&gt; into &lt;code&gt;Validation&lt;/code&gt;, use &lt;code&gt;Applicative&lt;/code&gt; functions to compose the different parts, and finally converting back to &lt;code&gt;Either&lt;/code&gt;.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Data.Validation&lt;/span&gt;
-
-&lt;span class=&quot;nf&quot;&gt;mkPerson&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Either&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;RefineException&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;mkPerson&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;toEither&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt;
-  &lt;span class=&quot;o&quot;&gt;&amp;lt;$&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fromEither&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;refine&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;o&quot;&gt;&amp;lt;*&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fromEither&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;refine&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;As we can see, it is a bit clunky, and this is a very repetitive task, which will only increase the amount of boilerplate in our codebase.&lt;/p&gt;
-
-&lt;p&gt;This seems to be the &lt;em&gt;status quo&lt;/em&gt; around validation in Haskell nowadays, and it was the same in Scala. So it’s kind of hard to realize we are missing what we don’t know: the &lt;code&gt;Parallel&lt;/code&gt; typeclass. I didn’t know it was such a game changer until I started using it everywhere.&lt;/p&gt;
-
-&lt;p&gt;This is exactly what this typeclass does for us in other languages, via its helpful functions and instances. Unfortunately, it doesn’t exist in Haskell, as far as I know… until now!&lt;/p&gt;
-
-&lt;h3 id=&quot;parallel-typeclass&quot;&gt;Parallel typeclass&lt;/h3&gt;
-
-&lt;p&gt;Let me introduce you to the &lt;code&gt;Parallel&lt;/code&gt; typeclass, already present in &lt;a href=&quot;https://pursuit.purescript.org/packages/purescript-parallel/4.0.0/docs/Control.Parallel.Class#t:Parallel&quot;&gt;PureScript&lt;/a&gt; and &lt;a href=&quot;https://github.com/typelevel/cats/blob/master/core/src/main/scala/cats/Parallel.scala#L10&quot;&gt;Scala&lt;/a&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Control.Natural&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:~&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Monad&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Applicative&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Parallel&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;where&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;parallel&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:~&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;sequential&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;:~&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;It defines a relationship between a &lt;code&gt;Monad&lt;/code&gt; that can also be an &lt;code&gt;Applicative&lt;/code&gt; with “parallely” behavior. That is, an &lt;code&gt;Applicative&lt;/code&gt; instance that wouln’t pass the monadic laws.&lt;/p&gt;
-
-&lt;p&gt;The most common relationship is the one given by &lt;code&gt;Either&lt;/code&gt; and &lt;code&gt;Validation&lt;/code&gt;. These two types are isomorphic, with the difference being that &lt;code&gt;Validation&lt;/code&gt; has an &lt;code&gt;Applicative&lt;/code&gt; instance that accumulate errors instead of short-circuiting on the first error.&lt;/p&gt;
-
-&lt;p&gt;So we can represent this relationship via &lt;em&gt;natural transformation&lt;/em&gt; in a &lt;code&gt;Parallel&lt;/code&gt; instance:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;instance&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Semigroup&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Parallel&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Validation&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Either&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;where&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;parallel&lt;/span&gt;   &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;NT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fromEither&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;sequential&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;NT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;toEither&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;In the same way, we can represent the relationship between &lt;code&gt;[]&lt;/code&gt; and &lt;code&gt;ZipList&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;instance&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Parallel&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ZipList&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;where&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;parallel&lt;/span&gt;   &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;NT&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ZipList&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;sequential&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;NT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getZipList&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Now, all this ceremony only becomes useful if we define some functions based on &lt;code&gt;Parallel&lt;/code&gt;. One of the most common ones is &lt;code&gt;parMapN&lt;/code&gt; (or &lt;code&gt;parMap2&lt;/code&gt; in this case, but ideally, it should be abstracted over its arity).&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;parMapN&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Applicative&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Monad&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Parallel&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a0&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a1&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a0&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a1&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;parMapN&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ma0&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ma1&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;unwrapNT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sequential&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;$&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;unwrapNT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;parallel&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ma0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;*&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;unwrapNT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;parallel&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ma1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Before we get to see how we can leverage this function with refinement types and data validation, we will define a type alias for our effect type and a function &lt;code&gt;ref&lt;/code&gt;, which will convert &lt;code&gt;RefineException&lt;/code&gt;s into a &lt;code&gt;[Text]&lt;/code&gt;, since our error type needs to be a &lt;code&gt;Semigroup&lt;/code&gt;.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Control.Arrow&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;left&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Data.Text&lt;/span&gt;     &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;pack&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;kr&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;Refined&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Eff&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Either&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;
-
-&lt;span class=&quot;nf&quot;&gt;ref&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Predicate&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Eff&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Refined&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;ref&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;left&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pack&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;show&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;refine&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;In the example below, we can appreciate how this function can be used to create a &lt;code&gt;Person&lt;/code&gt; instance with validated input data (it’s a breeze):&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;mkPerson&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Eff&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;mkPerson&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;parMapN&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ref&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ref&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Person&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Our &lt;code&gt;mkPerson&lt;/code&gt; is now validating all our inputs in parallel via an implicit round-trip &lt;code&gt;Either&lt;/code&gt;/&lt;code&gt;Validation&lt;/code&gt; given by our &lt;code&gt;Parallel&lt;/code&gt; instance.&lt;/p&gt;
-
-&lt;p&gt;We can also use &lt;code&gt;parMapN&lt;/code&gt; to use a different &lt;code&gt;Applicative&lt;/code&gt; instance for lists without manually wrapping / unwrapping &lt;code&gt;ZipList&lt;/code&gt;s.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;n1&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;n2&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-
-&lt;span class=&quot;nf&quot;&gt;n3&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;n3&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;$&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;*&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n2&lt;/span&gt;
-
-&lt;span class=&quot;nf&quot;&gt;n4&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;n4&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;parMapN&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n1&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Without &lt;code&gt;Parallel&lt;/code&gt;’s simplicity, it would look as follows:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;n4&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;n4&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getZipList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;$&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ZipList&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;*&amp;gt;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;ZipList&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n2&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;For convenience, here’s another function we can define in terms of &lt;code&gt;parMapN&lt;/code&gt;:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;nf&quot;&gt;parTupled&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Applicative&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Monad&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Parallel&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a0&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a1&lt;/span&gt;
-  &lt;span class=&quot;ow&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;nf&quot;&gt;parTupled&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ma0&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ma1&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;parMapN&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ma0&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ma1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(,)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;In Scala, there’s also an instance for &lt;code&gt;IO&lt;/code&gt; and &lt;code&gt;IO.Par&lt;/code&gt;, a newtype that provides a different &lt;code&gt;Applicative&lt;/code&gt; instance, which allows us to use functions such as &lt;code&gt;parMapN&lt;/code&gt; with &lt;code&gt;IO&lt;/code&gt; computations to run them in parallel!&lt;/p&gt;
-
-&lt;p&gt;And this is only the beginning… There are so many other useful functions we could define!&lt;/p&gt;
-
-&lt;p&gt;For now, the code is presented in &lt;a href=&quot;https://github.com/gvolpe/types-matter&quot;&gt;this Github repository&lt;/a&gt; together with some other examples. Should there be enough interest, I might polish it and ship it as a library.&lt;/p&gt;
-
-&lt;p&gt;Let me know your thoughts!&lt;/p&gt;
-
-&lt;p&gt;Gabriel.&lt;/p&gt;
-</description>
-        <pubDate>Mon, 20 Apr 2020 21:58:00 +0000</pubDate>
-        <link>https://gvolpe.github.io/blog/parallel-typeclass-for-haskell/</link>
-        <guid isPermaLink="true">https://gvolpe.github.io/blog/parallel-typeclass-for-haskell/</guid>
-        
-        
-        <category>haskell,</category>
-        
-        <category>parallel,</category>
-        
-        <category>validation,</category>
-        
-        <category>purescript,</category>
-        
-        <category>scala</category>
         
       </item>
     
