@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 07 Feb 2023 19:27:53 +0000</pubDate>
-    <lastBuildDate>Tue, 07 Feb 2023 19:27:53 +0000</lastBuildDate>
+    <pubDate>Tue, 07 Feb 2023 19:46:01 +0000</pubDate>
+    <lastBuildDate>Tue, 07 Feb 2023 19:46:01 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -25,26 +25,35 @@
 
 &lt;p&gt;&lt;img src=&quot;../images/garnix-app.png&quot; alt=&quot;app&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;The &lt;code&gt;homeConfigurations&lt;/code&gt; output is &lt;a href=&quot;https://github.com/garnix-io/issues/issues/24&quot;&gt;not yet supported&lt;/a&gt;, but it’s in the plans. A current workaround is to expose these as &lt;code&gt;packages&lt;/code&gt; instead, as I have in my flake’s outputs.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;homeConfigurations&lt;/code&gt; output is &lt;a href=&quot;https://github.com/garnix-io/issues/issues/24&quot;&gt;not yet supported&lt;/a&gt;, but it’s in the plans. A current workaround is to expose these as &lt;code&gt;packages&lt;/code&gt; or &lt;code&gt;checks&lt;/code&gt; instead, as I have in my flake’s outputs.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
   &lt;span class=&quot;ss&quot;&gt;outputs =&lt;/span&gt; inputs&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
       &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;x86_64-linux&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
       &lt;span class=&quot;ss&quot;&gt;ci =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/ci.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-      &lt;span class=&quot;ss&quot;&gt;home =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/home-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;ss&quot;&gt;homeConfigurations =&lt;/span&gt; home&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;rec&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;homeConfigurations =&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/home-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
 
       &lt;span class=&quot;ss&quot;&gt;nixosConfigurations =&lt;/span&gt;
         &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/nixos-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
 
       packages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;system&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
         &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;ci&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; metals metals-updater&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-        &lt;span class=&quot;ss&quot;&gt;home-edp =&lt;/span&gt; home&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gvolpe-edp&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;activationPackage&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-        &lt;span class=&quot;ss&quot;&gt;home-hdmi =&lt;/span&gt; home&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gvolpe-hdmi&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;activationPackage&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
       &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+      checks&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;system&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+          &lt;span class=&quot;ss&quot;&gt;os =&lt;/span&gt; inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mapAttrs
+            &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;_&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;system&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;build&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;toplevel&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+            nixosConfigurations&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+          &lt;span class=&quot;ss&quot;&gt;hm =&lt;/span&gt; inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mapAttrs
+            &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;_&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;activationPackage&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+            homeConfigurations&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+        os &lt;span class=&quot;o&quot;&gt;//&lt;/span&gt; hm&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
@@ -52,15 +61,19 @@
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake show --allow-import-from-derivation
 git+file:///home/gvolpe/workspace/nix-config?ref&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;...
+├───checks
+│   └───x86_64-linux
+│       ├───dell-xps: derivation &lt;span class=&quot;s1&quot;&gt;&amp;#39;nixos-system-dell-xps-15-9560-23.05.20230202.a100acd&amp;#39;&lt;/span&gt;
+│       ├───gvolpe-edp: derivation &lt;span class=&quot;s1&quot;&gt;&amp;#39;home-manager-generation&amp;#39;&lt;/span&gt;
+│       ├───gvolpe-hdmi: derivation &lt;span class=&quot;s1&quot;&gt;&amp;#39;home-manager-generation&amp;#39;&lt;/span&gt;
+│       └───tongfang-amd: derivation &lt;span class=&quot;s1&quot;&gt;&amp;#39;nixos-system-tongfang-amd-23.05.20230202.a100acd&amp;#39;&lt;/span&gt;
 ├───homeConfigurations: unknown
 ├───nixosConfigurations
 │   ├───dell-xps: NixOS configuration
 │   └───tongfang-amd: NixOS configuration
 └───packages
     └───x86_64-linux
-        ├───home-edp: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;home-manager-generation&amp;#39;&lt;/span&gt;
-        ├───home-hdmi: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;home-manager-generation&amp;#39;&lt;/span&gt;
-        ├───metals: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;metals-0.11.10+111-59a1b932-SNAPSHOT&amp;#39;&lt;/span&gt;
+        ├───metals: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;metals-0.11.10+117-476976c1-SNAPSHOT&amp;#39;&lt;/span&gt;
         └───metals-updater: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;metals-updater-script&amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Nevertheless, I believe the pros greatly outweigh the cons.&lt;/p&gt;
@@ -88,23 +101,17 @@ git+file:///home/gvolpe/workspace/nix-config?ref&lt;span class=&quot;o&quot;&gt;
 &lt;p&gt;First of all, it gets all the attribute names of the supported outputs, e.g.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix &lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; .#packages.x86_64-linux --apply builtins.attrNames --json
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;home-edp&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;home-hdmi&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;metals&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;metals-updater&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;metals&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;metals-updater&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
 
-&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix &lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; .#nixosConfigurations --apply builtins.attrNames --json
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;dell-xps&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;tongfang-amd&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;According to this, supporting &lt;code&gt;homeConfigurations&lt;/code&gt; should not be that hard, but there may be more to it.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix &lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; .#homeConfigurations --apply builtins.attrNames --json
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;gvolpe-edp&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;gvolpe-hdmi&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix &lt;span class=&quot;nb&quot;&gt;eval&lt;/span&gt; .#checks.x86_64-linux --apply builtins.attrNames --json
+&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;dell-xps&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;gvolpe-edp&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;gvolpe-hdmi&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;tongfang-amd&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Next, it builds every attribute previously collected in &lt;em&gt;parallel&lt;/em&gt;.&lt;/p&gt;
 
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix build .#metals --json
 &lt;span class=&quot;o&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;drvPath&amp;quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&amp;quot;/nix/store/4kql56jcvr6q0fihw2wqq56gqpf6h9gl-metals-0.11.10+111-59a1b932-SNAPSHOT.drv&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;outputs&amp;quot;&lt;/span&gt;:&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;out&amp;quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&amp;quot;/nix/store/q65x0gng6ni18hfyfbshzr910vlw28rp-metals-0.11.10+111-59a1b932-SNAPSHOT&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;startTime&amp;quot;&lt;/span&gt;:0,&lt;span class=&quot;s2&quot;&gt;&amp;quot;stopTime&amp;quot;&lt;/span&gt;:0&lt;span class=&quot;o&quot;&gt;}]&lt;/span&gt;
 
-&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix build .#home-hdmi --json
-&lt;span class=&quot;o&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;drvPath&amp;quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&amp;quot;/nix/store/wb31m320kq32b6wvclvdwnq16kgblwz0-home-manager-generation.drv&amp;quot;&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;outputs&amp;quot;&lt;/span&gt;:&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;out&amp;quot;&lt;/span&gt;:&lt;span class=&quot;s2&quot;&gt;&amp;quot;/nix/store/1xhxwpcsg97rgmp1hanr8lzszn3hhfd2-home-manager-generation&amp;quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;,&lt;span class=&quot;s2&quot;&gt;&amp;quot;startTime&amp;quot;&lt;/span&gt;:0,&lt;span class=&quot;s2&quot;&gt;&amp;quot;stopTime&amp;quot;&lt;/span&gt;:0&lt;span class=&quot;o&quot;&gt;}]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake check &lt;span class=&quot;c&quot;&gt;# don&amp;#39;t really know what happens after this&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Finally, it uses the derivation (&lt;code&gt;drvPath&lt;/code&gt;) of the outputs to query the nix log (or other heuristics when not available). I don’t know exactly what this means, but by running the following command:&lt;/p&gt;
 
