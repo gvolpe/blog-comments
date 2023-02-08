@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 07 Feb 2023 19:46:01 +0000</pubDate>
-    <lastBuildDate>Tue, 07 Feb 2023 19:46:01 +0000</lastBuildDate>
+    <pubDate>Wed, 08 Feb 2023 13:53:16 +0000</pubDate>
+    <lastBuildDate>Wed, 08 Feb 2023 13:53:16 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -32,6 +32,7 @@
     &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
       &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;x86_64-linux&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
       &lt;span class=&quot;ss&quot;&gt;ci =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/ci.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; mapAttrs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;rec&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
       &lt;span class=&quot;ss&quot;&gt;homeConfigurations =&lt;/span&gt;
@@ -46,12 +47,8 @@
 
       checks&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;system&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;
         &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
-          &lt;span class=&quot;ss&quot;&gt;os =&lt;/span&gt; inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mapAttrs
-            &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;_&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;system&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;build&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;toplevel&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-            nixosConfigurations&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-          &lt;span class=&quot;ss&quot;&gt;hm =&lt;/span&gt; inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mapAttrs
-            &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;_&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;activationPackage&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-            homeConfigurations&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+          &lt;span class=&quot;ss&quot;&gt;os =&lt;/span&gt; mapAttrs &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;_&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;system&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;build&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;toplevel&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; nixosConfigurations&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+          &lt;span class=&quot;ss&quot;&gt;hm =&lt;/span&gt; mapAttrs &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;_&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; c&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;activationPackage&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; homeConfigurations&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
         &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
         os &lt;span class=&quot;o&quot;&gt;//&lt;/span&gt; hm&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;

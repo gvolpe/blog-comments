@@ -3,6 +3,7 @@
     <span class="k">let</span>
       <span class="ss">system =</span> <span class="s2">&quot;x86_64-linux&quot;</span><span class="p">;</span>
       <span class="ss">ci =</span> <span class="nb">import</span> <span class="o">.</span><span class="l">/outputs/ci.nix</span> <span class="p">{</span> <span class="k">inherit</span> inputs system<span class="p">;</span> <span class="p">};</span>
+      <span class="k">inherit</span> <span class="p">(</span>inputs<span class="o">.</span>nixpkgs<span class="o">.</span>lib<span class="p">)</span> mapAttrs<span class="p">;</span>
     <span class="k">in</span>
     <span class="k">rec</span> <span class="p">{</span>
       <span class="ss">homeConfigurations =</span>
@@ -17,12 +18,8 @@
 
       checks<span class="o">.</span><span class="err">$</span><span class="p">{</span>system<span class="p">}</span> <span class="o">=</span>
         <span class="k">let</span>
-          <span class="ss">os =</span> inputs<span class="o">.</span>nixpkgs<span class="o">.</span>lib<span class="o">.</span>mapAttrs
-            <span class="p">(</span>_<span class="p">:</span> c<span class="p">:</span> c<span class="o">.</span>config<span class="o">.</span>system<span class="o">.</span>build<span class="o">.</span>toplevel<span class="p">)</span>
-            nixosConfigurations<span class="p">;</span>
-          <span class="ss">hm =</span> inputs<span class="o">.</span>nixpkgs<span class="o">.</span>lib<span class="o">.</span>mapAttrs
-            <span class="p">(</span>_<span class="p">:</span> c<span class="p">:</span> c<span class="o">.</span>activationPackage<span class="p">)</span>
-            homeConfigurations<span class="p">;</span>
+          <span class="ss">os =</span> mapAttrs <span class="p">(</span>_<span class="p">:</span> c<span class="p">:</span> c<span class="o">.</span>config<span class="o">.</span>system<span class="o">.</span>build<span class="o">.</span>toplevel<span class="p">)</span> nixosConfigurations<span class="p">;</span>
+          <span class="ss">hm =</span> mapAttrs <span class="p">(</span>_<span class="p">:</span> c<span class="p">:</span> c<span class="o">.</span>activationPackage<span class="p">)</span> homeConfigurations<span class="p">;</span>
         <span class="k">in</span>
         os <span class="o">//</span> hm<span class="p">;</span>
     <span class="p">};</span>
