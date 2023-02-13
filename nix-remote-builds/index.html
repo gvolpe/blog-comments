@@ -1,0 +1,57 @@
+<!DOCTYPE html> <html lang="en-uk"> <head> <meta charset="utf-8"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title> Nix remote builds &bull; gvolpe's blog </title> <meta name="description" content="Introduction"> <link rel="stylesheet" href="/blog/css/main.css"> <link rel="canonical" href="https://gvolpe.github.io/blog/nix-remote-builds/"> <link rel="alternate" type="application/rss+xml" title="gvolpe's blog" href="https://gvolpe.github.io/blog/feed.xml" /> <script defer type="text/javascript" src="https://api.pirsch.io/pirsch.js" id="pirschjs" data-code="db2twsz97grcqToSsEMhvcQXm8rLaFmQ"> </script> </head> <body class="single"> <main class="main"> <header class="header"> <div class="overlay"> <div class="container"> <h1 class="title"> <a href="/blog/">gvolpe's blog</a> </h1> <nav class="navbar"> <a href="#" class="menu-icon"> <span></span> <span></span> <span></span> </a> <ul class="nav"> <li><a href="https://gvolpe.com" target="_blank">Website</a></li> </ul> </nav> </div> </div> </header> <article class="post container card"> <header class="post-header"> <h1 class="post-title">Nix remote builds</h1> <span class="post-meta"> <time class="post-date" datetime="2023-02-13">Feb 13, 2023</time> <span class="post-author">by Gabriel Volpe</span> </span> </header> <div class="post-content"> <h2 id="introduction">Introduction</h2> <p>Quoting the <a href="https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html">official documentation</a>:</p> <blockquote> <p>Nix supports remote builds, where a local Nix installation can forward Nix builds to other machines. This allows multiple builds to be performed in parallel and allows Nix to perform multi-platform builds in a semi-transparent way. For instance, if you perform a build for a <code>86_64-darwin</code> on an <code>i686-linux</code> machine, Nix can automatically forward the build to a <code>x86_64-darwin</code> machine, if available.</p> </blockquote> <p>Remote builds enable interesting use cases and experiments. Besides building for different architectures, another use case that comes to mind would be having a low-resource machine building a derivation that would require heavy CPU usage (e.g. a Rust application) on the fly, without having to rely on CI builds or binary caches, effectively used as a development environment.</p> <p>While this may sound too good to be truth, not everyone out there has a powerful remote machine to connect to. Moreover, we may want to give remote builds a try to find out whether it could help us solve our problems before considering purchasing a new computer. To fill this gap (and much more!), let me introduce you to Nixbuild.</p> <h3 id="nixbuildnet">Nixbuild.net</h3> <p>In my <a href="../garnix">previous post</a>, I promised I would write a follow-up post about <a href="https://nixbuild.net/">Nixbuild</a>, officially promoted as follows:</p> <blockquote> <p>The one-stop solution for efficient builds, smart caching and ultra-fast CI pipelines. Scales by default, pay-per-use, no vendor lock-in. Supports x86 and Arm builds.</p> </blockquote> <p>If you scroll down a bit on their site, you’ll find the two fields required to sign up for a free trial: an email and an SSH key. Once you get the email to activate your account, you should head over to the <a href="https://docs.nixbuild.net/getting-started/">Getting started</a> section of the documentation.</p> <p>The free account includes 25 free CPU hours of build time at the moment of writing, which should be more than enough to evaluate whether this could be a good fit for us. Or even to just experiment (and have fun!) with it and learn about remote builds :)</p> <p>To configure a NixOS machine to run remote builds, we need to do exactly what the documentation says:</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  programs<span class="o">.</span>ssh<span class="o">.</span><span class="ss">extraConfig =</span> <span class="s1">&#39;&#39;</span>
+<span class="s1">    Host eu.nixbuild.net</span>
+<span class="s1">      PubkeyAcceptedKeyTypes ssh-ed25519</span>
+<span class="s1">      IdentityFile /home/user/.ssh/my-nixbuild-key</span>
+<span class="s1">  &#39;&#39;</span><span class="p">;</span>
+
+  programs<span class="o">.</span>ssh<span class="o">.</span><span class="ss">knownHosts =</span> <span class="p">{</span>
+    <span class="ss">nixbuild =</span> <span class="p">{</span>
+      <span class="ss">hostNames =</span> <span class="p">[</span> <span class="s2">&quot;eu.nixbuild.net&quot;</span> <span class="p">];</span>
+      <span class="ss">publicKey =</span> <span class="s2">&quot;ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPIQCZc54poJ8vqawd8TraNryQeJnvH1eLpIDgbiqymM&quot;</span><span class="p">;</span>
+    <span class="p">};</span>
+  <span class="p">};</span>
+
+  <span class="ss">nix =</span> <span class="p">{</span>
+    <span class="ss">distributedBuilds =</span> <span class="no">true</span><span class="p">;</span>
+    <span class="ss">buildMachines =</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="ss">hostName =</span> <span class="s2">&quot;eu.nixbuild.net&quot;</span><span class="p">;</span>
+        <span class="ss">system =</span> <span class="s2">&quot;x86_64-linux&quot;</span><span class="p">;</span>
+        <span class="ss">maxJobs =</span> <span class="mi">100</span><span class="p">;</span>
+        <span class="ss">supportedFeatures =</span> <span class="p">[</span> <span class="s2">&quot;benchmark&quot;</span> <span class="s2">&quot;big-parallel&quot;</span> <span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">];</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>Make sure to replace <code>IdentityFile</code> with the path to your SSH key. That’s everything that’s needed, as this <a href="https://github.com/gvolpe/nix-config/pull/166/files">pull request</a> on my repo demonstrates.</p> <h3 id="ci-builds">CI builds</h3> <p>Continuing with my <a href="https://github.com/gvolpe/nix-config">NixOS configuration</a> as example, we can learn how to leverage Nixbuild as a CI service by using <a href="https://github.com/nixbuild/nixbuild-action">nixbuild-action</a>. Here are the outputs of my Nix flake.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix flake show --allow-import-from-derivation
+git+file:///home/gvolpe/workspace/nix-config?ref<span class="o">=</span>...
+├───checks
+│   └───x86_64-linux
+│       ├───dell-xps: derivation <span class="s1">&#39;nixos-system-dell-xps-15-9560-23.05.20230202.a100acd&#39;</span>
+│       ├───gvolpe-edp: derivation <span class="s1">&#39;home-manager-generation&#39;</span>
+│       ├───gvolpe-hdmi: derivation <span class="s1">&#39;home-manager-generation&#39;</span>
+│       └───tongfang-amd: derivation <span class="s1">&#39;nixos-system-tongfang-amd-23.05.20230202.a100acd&#39;</span>
+├───homeConfigurations: unknown
+├───nixosConfigurations
+│   ├───dell-xps: NixOS configuration
+│   └───tongfang-amd: NixOS configuration
+└───packages
+    └───x86_64-linux
+        ├───metals: package <span class="s1">&#39;metals-0.11.10+117-476976c1-SNAPSHOT&#39;</span>
+        └───metals-updater: package <span class="s1">&#39;metals-updater-script&#39;</span></code></pre></div> <p>To build all the <code>packages</code> and <code>checks</code>, we need the following <code>.github/workflows/nixbuild.yml</code> configuration:</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash">name: Nixbuild demo
+
+on:
+  pull_request:
+
+<span class="nb">jobs</span>:
+  build:
+    uses: nixbuild/nixbuild-action/.github/workflows/ci-workflow.yml@master
+    secrets:
+      nixbuild_ssh_key: <span class="k">${</span><span class="p"> { secrets.NIXBUILD_SSH_KEY </span><span class="k">}</span><span class="o">}</span>
+    with:
+      nix_conf: <span class="s1">&#39;allow-import-from-derivation = true&#39;</span>
+      filter_builds: <span class="s1">&#39;.top_attr == &quot;packages&quot; or .top_attr == &quot;checks&quot;&#39;</span></code></pre></div> <p>It expects the <code>NIXBUILD_SSH_KEY</code> environment variable to be set with your private SSH key value used to sign up for Nixbuild. Note that both <code>homeConfigurations</code> and <code>nixosConfigurations</code> are exposed as checks, so these will also be built, resulting in the following workflow.</p> <p><img src="../images/nixbuild-jobs.png" alt="jobs" /></p> <p>Once it finishes, it may produce some artifacts.</p> <p><img src="../images/nixbuild-artifacts.png" alt="artifacts" /></p> <p>As well as a final summary.</p> <p><img src="../images/nixbuild-summary.png" alt="summary" /></p> <p>I found the summaries to be extremely helpful understanding what was built on the remote machine, which can also help us understand costs.</p> <h3 id="final-words">Final words</h3> <p>I gave Nixbuild a try mainly to learn about remote builds and evaluate their CI service mainly because of curiosity. However, I don’t have a use case for it besides building my NixOS configuration, for which I find a CI build + a binary cache to be sufficient, but who knows? I may have a more exciting use case for it someday.</p> <p>Talking specifically about CI builds, I found Garnix to be much faster compared to the free trial of Nixbuild, thus it will continue to be my daily driver. Nevertheless, Nixbuild is such a cool project and it’s much more than a CI service, so I definitely encourage everyone to have a look at their extensive documentation and give it a try.</p> <p>Best, Gabriel.</p> <aside class="share"> <span>Share this: </span> <a href="http://twitter.com/share?text=Nix remote builds&amp;url=https://gvolpe.github.io/nix-remote-builds/&amp;hashtags=scala,haskell,fp&amp;via=volpegabriel87" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;"> <i class="fa fa-twitter-square"></i> </a> </aside> <div id="gh-comments"> <br/><br/> <h6>COMMENTS</h6> <div id="gh-comments-list"></div> </div> <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script> <script src="/blog/js/github-comments.js"> </script> <script type="text/javascript"> DoGithubComments ( "gvolpe/blog" , "25" ); </script> <noscript>Please enable JavaScript to view comments.</noscript> </div> </article> <footer class="footer t-center"> <div class="container"> <div class="social-icons"> <ul class="text-left"> <li><a href="https://twitter.com/volpegabriel87" target="_blank"><i class="fa fa-twitter"></i></a></li> </ul> </div> <small>&copy; 2023 All rights reserved. Made with <a href="http://jekyllrb.com" target="_blank">Jekyll</a> and <i class="icon icon-heart"></i></small> <small>by <a href="http://nandomoreira.me" target="_blank">nandomoreira.me</a></small> </div> </footer> </main> </body> </html></body></html>
+<!--
+// # Zetsu Jekyll theme - https://github.com/nandomoreriame/zetsu/
+// by nandomoreira.me
+-->

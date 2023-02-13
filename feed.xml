@@ -5,9 +5,151 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Wed, 08 Feb 2023 13:53:16 +0000</pubDate>
-    <lastBuildDate>Wed, 08 Feb 2023 13:53:16 +0000</lastBuildDate>
+    <pubDate>Mon, 13 Feb 2023 20:42:56 +0000</pubDate>
+    <lastBuildDate>Mon, 13 Feb 2023 20:42:56 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Nix remote builds</title>
+        <description>&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;Quoting the &lt;a href=&quot;https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html&quot;&gt;official documentation&lt;/a&gt;:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Nix supports remote builds, where a local Nix installation can forward Nix builds to other machines. This allows multiple builds to be performed in parallel and allows Nix to perform multi-platform builds in a semi-transparent way. For instance, if you perform a build for a &lt;code&gt;86_64-darwin&lt;/code&gt; on an &lt;code&gt;i686-linux&lt;/code&gt; machine, Nix can automatically forward the build to a &lt;code&gt;x86_64-darwin&lt;/code&gt; machine, if available.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Remote builds enable interesting use cases and experiments. Besides building for different architectures, another use case that comes to mind would be having a low-resource machine building a derivation that would require heavy CPU usage (e.g. a Rust application) on the fly, without having to rely on CI builds or binary caches, effectively used as a development environment.&lt;/p&gt;
+
+&lt;p&gt;While this may sound too good to be truth, not everyone out there has a powerful remote machine to connect to. Moreover, we may want to give remote builds a try to find out whether it could help us solve our problems before considering purchasing a new computer. To fill this gap (and much more!), let me introduce you to Nixbuild.&lt;/p&gt;
+
+&lt;h3 id=&quot;nixbuildnet&quot;&gt;Nixbuild.net&lt;/h3&gt;
+
+&lt;p&gt;In my &lt;a href=&quot;../garnix&quot;&gt;previous post&lt;/a&gt;, I promised I would write a follow-up post about &lt;a href=&quot;https://nixbuild.net/&quot;&gt;Nixbuild&lt;/a&gt;, officially promoted as follows:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;The one-stop solution for efficient builds, smart caching and ultra-fast CI pipelines. Scales by default, pay-per-use, no vendor lock-in. Supports x86 and Arm builds.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;If you scroll down a bit on their site, you’ll find the two fields required to sign up for a free trial: an email and an SSH key. Once you get the email to activate your account, you should head over to the &lt;a href=&quot;https://docs.nixbuild.net/getting-started/&quot;&gt;Getting started&lt;/a&gt; section of the documentation.&lt;/p&gt;
+
+&lt;p&gt;The free account includes 25 free CPU hours of build time at the moment of writing, which should be more than enough to evaluate whether this could be a good fit for us. Or even to just experiment (and have fun!) with it and learn about remote builds :)&lt;/p&gt;
+
+&lt;p&gt;To configure a NixOS machine to run remote builds, we need to do exactly what the documentation says:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  programs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;ssh&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;extraConfig =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;    Host eu.nixbuild.net&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;      PubkeyAcceptedKeyTypes ssh-ed25519&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;      IdentityFile /home/user/.ssh/my-nixbuild-key&lt;/span&gt;
+&lt;span class=&quot;s1&quot;&gt;  &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  programs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;ssh&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;knownHosts =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;nixbuild =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;hostNames =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;eu.nixbuild.net&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;publicKey =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPIQCZc54poJ8vqawd8TraNryQeJnvH1eLpIDgbiqymM&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;nix =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;distributedBuilds =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;buildMachines =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;hostName =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;eu.nixbuild.net&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;x86_64-linux&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;maxJobs =&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;ss&quot;&gt;supportedFeatures =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;benchmark&amp;quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;big-parallel&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Make sure to replace &lt;code&gt;IdentityFile&lt;/code&gt; with the path to your SSH key. That’s everything that’s needed, as this &lt;a href=&quot;https://github.com/gvolpe/nix-config/pull/166/files&quot;&gt;pull request&lt;/a&gt; on my repo demonstrates.&lt;/p&gt;
+
+&lt;h3 id=&quot;ci-builds&quot;&gt;CI builds&lt;/h3&gt;
+
+&lt;p&gt;Continuing with my &lt;a href=&quot;https://github.com/gvolpe/nix-config&quot;&gt;NixOS configuration&lt;/a&gt; as example, we can learn how to leverage Nixbuild as a CI service by using &lt;a href=&quot;https://github.com/nixbuild/nixbuild-action&quot;&gt;nixbuild-action&lt;/a&gt;. Here are the outputs of my Nix flake.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix flake show --allow-import-from-derivation
+git+file:///home/gvolpe/workspace/nix-config?ref&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;...
+├───checks
+│   └───x86_64-linux
+│       ├───dell-xps: derivation &lt;span class=&quot;s1&quot;&gt;&amp;#39;nixos-system-dell-xps-15-9560-23.05.20230202.a100acd&amp;#39;&lt;/span&gt;
+│       ├───gvolpe-edp: derivation &lt;span class=&quot;s1&quot;&gt;&amp;#39;home-manager-generation&amp;#39;&lt;/span&gt;
+│       ├───gvolpe-hdmi: derivation &lt;span class=&quot;s1&quot;&gt;&amp;#39;home-manager-generation&amp;#39;&lt;/span&gt;
+│       └───tongfang-amd: derivation &lt;span class=&quot;s1&quot;&gt;&amp;#39;nixos-system-tongfang-amd-23.05.20230202.a100acd&amp;#39;&lt;/span&gt;
+├───homeConfigurations: unknown
+├───nixosConfigurations
+│   ├───dell-xps: NixOS configuration
+│   └───tongfang-amd: NixOS configuration
+└───packages
+    └───x86_64-linux
+        ├───metals: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;metals-0.11.10+117-476976c1-SNAPSHOT&amp;#39;&lt;/span&gt;
+        └───metals-updater: package &lt;span class=&quot;s1&quot;&gt;&amp;#39;metals-updater-script&amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;To build all the &lt;code&gt;packages&lt;/code&gt; and &lt;code&gt;checks&lt;/code&gt;, we need the following &lt;code&gt;.github/workflows/nixbuild.yml&lt;/code&gt; configuration:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;name: Nixbuild demo
+
+on:
+  pull_request:
+
+&lt;span class=&quot;nb&quot;&gt;jobs&lt;/span&gt;:
+  build:
+    uses: nixbuild/nixbuild-action/.github/workflows/ci-workflow.yml@master
+    secrets:
+      nixbuild_ssh_key: &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;p&quot;&gt; { secrets.NIXBUILD_SSH_KEY &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    with:
+      nix_conf: &lt;span class=&quot;s1&quot;&gt;&amp;#39;allow-import-from-derivation = true&amp;#39;&lt;/span&gt;
+      filter_builds: &lt;span class=&quot;s1&quot;&gt;&amp;#39;.top_attr == &amp;quot;packages&amp;quot; or .top_attr == &amp;quot;checks&amp;quot;&amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It expects the &lt;code&gt;NIXBUILD_SSH_KEY&lt;/code&gt; environment variable to be set with your private SSH key value used to sign up for Nixbuild. Note that both &lt;code&gt;homeConfigurations&lt;/code&gt; and &lt;code&gt;nixosConfigurations&lt;/code&gt; are exposed as checks, so these will also be built, resulting in the following workflow.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/nixbuild-jobs.png&quot; alt=&quot;jobs&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Once it finishes, it may produce some artifacts.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/nixbuild-artifacts.png&quot; alt=&quot;artifacts&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As well as a final summary.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/nixbuild-summary.png&quot; alt=&quot;summary&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I found the summaries to be extremely helpful understanding what was built on the remote machine, which can also help us understand costs.&lt;/p&gt;
+
+&lt;h3 id=&quot;final-words&quot;&gt;Final words&lt;/h3&gt;
+
+&lt;p&gt;I gave Nixbuild a try mainly to learn about remote builds and evaluate their CI service mainly because of curiosity. However, I don’t have a use case for it besides building my NixOS configuration, for which I find a CI build + a binary cache to be sufficient, but who knows? I may have a more exciting use case for it someday.&lt;/p&gt;
+
+&lt;p&gt;Talking specifically about CI builds, I found Garnix to be much faster compared to the free trial of Nixbuild, thus it will continue to be my daily driver. Nevertheless, Nixbuild is such a cool project and it’s much more than a CI service, so I definitely encourage everyone to have a look at their extensive documentation and give it a try.&lt;/p&gt;
+
+&lt;p&gt;Best,
+Gabriel.&lt;/p&gt;
+</description>
+        <pubDate>Mon, 13 Feb 2023 22:00:00 +0000</pubDate>
+        <link>https://gvolpe.github.io/blog/nix-remote-builds/</link>
+        <guid isPermaLink="true">https://gvolpe.github.io/blog/nix-remote-builds/</guid>
+        
+        
+        <category>nix,</category>
+        
+        <category>flakes,</category>
+        
+        <category>ci,</category>
+        
+        <category>cache,</category>
+        
+        <category>cachix,</category>
+        
+        <category>garnix,</category>
+        
+        <category>nixbuild,</category>
+        
+        <category>remote,</category>
+        
+        <category>builder</category>
+        
+      </item>
     
       <item>
         <title>Garnix CI</title>
@@ -2495,238 +2637,6 @@ Gabriel.&lt;/p&gt;
         <category>dconf,</category>
         
         <category>home-manager</category>
-        
-      </item>
-    
-      <item>
-        <title>Github actions powered by Nix Shell &amp; Cachix</title>
-        <description>&lt;p&gt;The more I learn about &lt;a href=&quot;https://nixos.org/nix/&quot;&gt;Nix&lt;/a&gt; - a purely functional package manager - the more I am convinced this is the way forward. Even if there’s still room for big improvements.&lt;/p&gt;
-
-&lt;p&gt;Today I’d like to share with y’all what I’ve been up-to lately. Though, you could imagine I’ve been &lt;em&gt;Nixifying&lt;/em&gt; more than one project ;)&lt;/p&gt;
-
-&lt;h3 id=&quot;nix-shell&quot;&gt;Nix shell&lt;/h3&gt;
-
-&lt;p&gt;Nix shell is a great tool to create reproducible development environments. For example, we could create a shell where the &lt;code&gt;redis&lt;/code&gt; package is available, without installing it in our system.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix-shell -p redis
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;nix-shell:~&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;redis-cli --version
-redis-cli 6.0.3
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;nix-shell:~&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;
-&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;redis-cli --version
-Command &lt;span class=&quot;s1&quot;&gt;&amp;#39;redis-cli&amp;#39;&lt;/span&gt; not found&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;This is not &lt;em&gt;that reproducible&lt;/em&gt; since different machines might be pointing to a different Nix channel, or to the same channel but using a different version. To guarantee reproducibility, we need to &lt;a href=&quot;https://nixos.wiki/wiki/FAQ/Pinning_Nixpkgs&quot;&gt;pin our nixpkgs&lt;/a&gt; version.&lt;/p&gt;
-
-&lt;p&gt;Nowadays, it is very common to provide a &lt;code&gt;shell.nix&lt;/code&gt; per project, declaring the dependencies needed to build it. This comes in very handy since we can checkout a project, type &lt;code&gt;nix-shell&lt;/code&gt; and we would be ready to build it. Furthermore, one could use &lt;a href=&quot;https://github.com/nix-community/nix-direnv&quot;&gt;nix-direnv&lt;/a&gt; instead so that all the needed dependencies are available as soon as we cd into the directory (highly recommended).&lt;/p&gt;
-
-&lt;p&gt;I’ve been following this practice in most of my projects, and this blog is not an exception. This is how its &lt;code&gt;shell.nix&lt;/code&gt; is defined:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;nixpkgs =&lt;/span&gt; fetchTarball &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;name   =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;NixOS-unstable-13-05-2020&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;url    =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;https://github.com/NixOS/nixpkgs-channels/archive/6bcb1dec8ea.tar.gz&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;sha256 =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;04x750byjr397d3mfwkl09b2cz7z71fcykhvn8ypxrck8w7kdi1h&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; nixpkgs &lt;span class=&quot;p&quot;&gt;{};&lt;/span&gt;
-
-  &lt;span class=&quot;ss&quot;&gt;ruby =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;ruby_2_7&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;rubygems =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;rubygems&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;override &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;ruby =&lt;/span&gt; ruby&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
-
-&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkShell &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;buildInputs =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
-    pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;haskellPackages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;dhall-json &lt;span class=&quot;c1&quot;&gt;# v1.6.2&lt;/span&gt;
-    ruby &lt;span class=&quot;c1&quot;&gt;# v2.7.1p83&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-
-  &lt;span class=&quot;ss&quot;&gt;shellHook =&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;    mkdir -p .nix-gems&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;    export GEM_HOME=$PWD/.nix-gems&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;    export GEM_PATH=$GEM_HOME&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;    export PATH=$GEM_HOME/bin:$PATH&lt;/span&gt;
-&lt;span class=&quot;s1&quot;&gt;  &amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;If you have never seen one, this is what’s happening step by step:&lt;/p&gt;
-
-&lt;ol&gt;
-  &lt;li&gt;&lt;code&gt;fetchTarball&lt;/code&gt; gets the specified version of the &lt;code&gt;nixpkgs&lt;/code&gt; as a tarball (reproducibility).&lt;/li&gt;
-  &lt;li&gt;&lt;code&gt;rubygems&lt;/code&gt; is overriding the &lt;code&gt;ruby&lt;/code&gt; version of &lt;code&gt;nixpkgs&lt;/code&gt; to match the one we need (&lt;code&gt;2.7.x&lt;/code&gt;).&lt;/li&gt;
-  &lt;li&gt;&lt;code&gt;pkgs.mkShell&lt;/code&gt; should be self-explanatory; it creates a shell using the specified version of &lt;code&gt;nixpkgs&lt;/code&gt;.&lt;/li&gt;
-  &lt;li&gt;&lt;code&gt;buildInputs&lt;/code&gt; defines the two dependencies needed to build the project. Actually, only &lt;code&gt;ruby&lt;/code&gt; is needed to build the blog; &lt;code&gt;dhall-json&lt;/code&gt; is only used locally to generate some YAML files.&lt;/li&gt;
-  &lt;li&gt;&lt;code&gt;shellHook&lt;/code&gt; allows us to run some commands to prepare the environment of our shell.&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;Now anyone could clone this project on Github and build it locally using Nix. Reproducibility should be guaranteed (well, mostly(*)).&lt;/p&gt;
-
-&lt;p&gt;(*) In a Ruby project, the best way to guarantee reproducibility is by using &lt;a href=&quot;https://github.com/nix-community/bundix&quot;&gt;bundix&lt;/a&gt;, but I didn’t bother in using it just to build my blog. After all, I prefer to write code in statically-typed languages.&lt;/p&gt;
-
-&lt;h3 id=&quot;github-actions-powered-by-dhall&quot;&gt;Github actions powered by Dhall&lt;/h3&gt;
-
-&lt;p&gt;The curious reader might be thinking what are those YAML files we need to build. The answer is the YAML files needed by &lt;a href=&quot;https://help.github.com/en/actions&quot;&gt;Github actions&lt;/a&gt;. Why not defining the YAML files directly? One may ask. The answer is I really &lt;a href=&quot;https://noyaml.com/&quot;&gt;dislike YAML files&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;So there is &lt;a href=&quot;https://dhall-lang.org/&quot;&gt;Dhall&lt;/a&gt;, which among other things, can generate YAML from a sane Dhall definition via the &lt;code&gt;dhall-to-yaml&lt;/code&gt; program. This is how the CI build definition for this blog looks like:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;
-      &lt;span class=&quot;n&quot;&gt;https&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;://&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;raw&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;githubusercontent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;com&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gvolpe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;github&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;actions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dhall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cachix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;package&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dhall&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sha256&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cd8f64770d8b015c2fd52bae5ddfb5b393eb7e0936f7f8e18f311c591b888a5&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;setup&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;checkout&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cachix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;install&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nix&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cachix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cachix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cache&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;gvolpe-blog&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;run&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;nix-shell run -- &lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&amp;quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;bundle install &amp;amp;&amp;amp; bundle exec jekyll build&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&amp;quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;in&lt;/span&gt;  &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Workflow&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Blog&amp;quot;&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;on&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;On&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pull_request&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Some&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;PullRequest&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;push&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Some&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Push&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;branches&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Some&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;master&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jobs&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;toMap&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;build&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Job&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;build&amp;quot;&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;needs&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;None&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;List&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;runs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;on&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;types&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;RunsOn&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ubuntu&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;18.04&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;`&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;setup&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Besides giving us types, Dhall gives us &lt;a href=&quot;http://www.haskellforall.com/2017/11/semantic-integrity-checks-are-next.html&quot;&gt;semantic integrity checks&lt;/a&gt;, which is a great and secure way of versioning files. You should really read the linked blogpost if you haven’t heard of it.&lt;/p&gt;
-
-&lt;p&gt;Notice how we use the same &lt;code&gt;shell.nix&lt;/code&gt; we use for local development to build our software in the CI pipeline. Isn’t that awesome? No more duplicate ways of building packages! This way, we guarantee that whatever works locally, also works on our CI.&lt;/p&gt;
-
-&lt;p&gt;Now, what am I using to write this nice Dhall definition? The answer is &lt;a href=&quot;https://github.com/regadas/github-actions-dhall&quot;&gt;Github Actions Dhall&lt;/a&gt;, a project by Filipe Regadas.&lt;/p&gt;
-
-&lt;p&gt;In this particular example, I’m pointing at my fork, which contains the definitions of the &lt;code&gt;cachix/install-nix&lt;/code&gt; and &lt;code&gt;cachix/cachix&lt;/code&gt; actions. Ultimately, these changes will be available upstream, I hope.&lt;/p&gt;
-
-&lt;p&gt;All we need to do to generate the required YAML file is to run the following command:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;dhall-to-yaml --file ci.dhall &amp;gt; ci.yml&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;I know this is a bit annoying at the moment, but I’d do this 1000 times over writing YAML directly. The interesting thing is that Github could support Dhall definitions natively - I actually submitted a feature request but I don’t know if they will consider it.&lt;/p&gt;
-
-&lt;p&gt;All they need to do is to have &lt;code&gt;dhall-json&lt;/code&gt; installed, take in a Dhall definition and run the same &lt;code&gt;dhall-to-yaml&lt;/code&gt; command. Now they can just re-use the existing infrastructure! &lt;em&gt;It would be fantastic if Github pulls this off&lt;/em&gt;.&lt;/p&gt;
-
-&lt;h3 id=&quot;caching-derivations&quot;&gt;Caching derivations&lt;/h3&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://cachix.org/&quot;&gt;Cachix&lt;/a&gt; is a binary cache as a service, and it is free for public caches and open-source projects. It helps speeding up your CI build as well as builds in other machines that share the same &lt;code&gt;shell.nix&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;Its main documentation is centered around building Nix derivations, so this is what you will find:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;cachix create &amp;lt;name&amp;gt;
-&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix-build &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; cachix push &amp;lt;name&amp;gt;
-&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;cachix use &amp;lt;name&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;However, if we try to build our &lt;code&gt;shell.nix&lt;/code&gt; file, this is what happens:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix-build shell.nix
-these derivations will be built:
-  /nix/store/7lyp4vfrrsn7rx3rwy31va2l10g4xkxq-nix-shell.drv
-building &lt;span class=&quot;s1&quot;&gt;&amp;#39;/nix/store/7lyp4vfrrsn7rx3rwy31va2l10g4xkxq-nix-shell.drv&amp;#39;&lt;/span&gt;...
-nobuildPhase
-
-This derivation is not meant to be built, aborting
-
-builder &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;/nix/store/7lyp4vfrrsn7rx3rwy31va2l10g4xkxq-nix-shell.drv&amp;#39;&lt;/span&gt; failed with &lt;span class=&quot;nb&quot;&gt;exit &lt;/span&gt;code 1
-error: build of &lt;span class=&quot;s1&quot;&gt;&amp;#39;/nix/store/7lyp4vfrrsn7rx3rwy31va2l10g4xkxq-nix-shell.drv&amp;#39;&lt;/span&gt; failed&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Don’t worry. Cachix supports building and pushing the derivations of a Nix shell but it is currently an under-documented feature! This is how we can do it:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix-shell
-&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix-store -qR --include-outputs &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;nix-instantiate shell.nix&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; cachix push &amp;lt;name&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;The first step might not be necessary if you already evaluated your shell or are using Nix Direnv.&lt;/p&gt;
-
-&lt;p&gt;Once you learn how to use Cachix, you could take advantage of it on Github actions by using &lt;a href=&quot;https://github.com/cachix/cachix-action&quot;&gt;Cachix Action&lt;/a&gt;, which is the action used in our Dhall file above.&lt;/p&gt;
-
-&lt;p&gt;So far, I have been trying this configuration on &lt;a href=&quot;https://github.com/gvolpe/blog&quot;&gt;this blog&lt;/a&gt;, on a &lt;a href=&quot;https://github.com/profunktor/redis4cats&quot;&gt;Scala project&lt;/a&gt; and on a &lt;a href=&quot;https://github.com/gvolpe/shopping-cart-haskell&quot;&gt;Haskell project&lt;/a&gt;. The conclusion is that for a CI build job I could probably get away without using Cachix and it’ll still be the same. However, as soon as the Nix dependencies of your project start to grow, you may notice a difference.&lt;/p&gt;
-
-&lt;p&gt;Here’s a screenshot of the current size of all the caches I have defined:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;../images/cachix.png&quot; alt=&quot;cachix&quot; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&quot;microsite-publishing-automation&quot;&gt;Microsite publishing automation&lt;/h3&gt;
-
-&lt;p&gt;The Redis4Cats project (Scala) is particularly interesting because I use Nix only to publish the static site (microsite) that contains the documentation. This is normally done via the command &lt;code&gt;sbt publishMicrosite&lt;/code&gt;, which requires not only &lt;code&gt;sbt&lt;/code&gt; and &lt;code&gt;openjdk&lt;/code&gt; but also &lt;code&gt;jekyll&lt;/code&gt;. Find below the definition of the &lt;code&gt;shell.nix&lt;/code&gt; file:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;nixpkgs =&lt;/span&gt; fetchTarball &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;name   =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;NixOS-unstable-13-05-2020&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;url    =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;https://github.com/NixOS/nixpkgs-channels/archive/6bcb1dec8ea.tar.gz&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;sha256 =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;04x750byjr397d3mfwkl09b2cz7z71fcykhvn8ypxrck8w7kdi1h&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; nixpkgs &lt;span class=&quot;p&quot;&gt;{};&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
-  pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkShell &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;buildInputs =&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;with&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
-      haskellPackages&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;dhall-json &lt;span class=&quot;c1&quot;&gt;# 1.6.2&lt;/span&gt;
-      jekyll &lt;span class=&quot;c1&quot;&gt;# 4.0.1&lt;/span&gt;
-      openjdk &lt;span class=&quot;c1&quot;&gt;# 1.8.0_242&lt;/span&gt;
-      sbt &lt;span class=&quot;c1&quot;&gt;# 1.3.10&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Besides this Nix shell definition, we also have a Dhall definition of the Github actions job required to automate the publishing of the microsite, only when some changes have been made to the site and is pushed to master.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;
-      &lt;span class=&quot;n&quot;&gt;https&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;://&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;raw&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;githubusercontent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;com&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gvolpe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;github&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;actions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dhall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cachix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;package&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dhall&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sha256&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cd8f64770d8b015c2fd52bae5ddfb5b393eb7e0936f7f8e18f311c591b888a5&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;let&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;setup&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;checkout&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cachix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;install&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nix&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cachix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cachix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cache&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;scala-microsite&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;run&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;run&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;nix-shell --run &lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&amp;quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;sbt publishSite&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&amp;quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-
-&lt;span class=&quot;kr&quot;&gt;in&lt;/span&gt;  &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Workflow&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Microsite&amp;quot;&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;on&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;On&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;push&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Some&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Push&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;branches&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Some&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;master&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;paths&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Some&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;site/**&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jobs&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;toMap&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;publish&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;Job&lt;/span&gt;&lt;span class=&quot;ow&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;publish-site&amp;quot;&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;needs&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;None&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;List&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;runs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;on&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GithubActions&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;types&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;RunsOn&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;`&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ubuntu&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;18.04&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;`&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;steps&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;setup&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Some&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;toMap&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;GITHUB_TOKEN&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;{ secrets.GITHUB_TOKEN }}&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
-          &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;You can see it in action &lt;a href=&quot;https://github.com/profunktor/redis4cats/runs/732431811&quot;&gt;here&lt;/a&gt;. It takes about 13 minutes because the &lt;code&gt;sbt publishMicrosite&lt;/code&gt; is a slow task, not because of Nix, but the point is that this is now an automated task and I can forget about it.&lt;/p&gt;
-
-&lt;p&gt;I like all this stuff a lot so I hope to adopt it in other projects quite soon.&lt;/p&gt;
-
-&lt;p&gt;Cheers,
-Gabriel.&lt;/p&gt;
-</description>
-        <pubDate>Tue, 02 Jun 2020 21:58:00 +0000</pubDate>
-        <link>https://gvolpe.github.io/blog/github-actions-nix-cachix-dhall/</link>
-        <guid isPermaLink="true">https://gvolpe.github.io/blog/github-actions-nix-cachix-dhall/</guid>
-        
-        
-        <category>ci,</category>
-        
-        <category>nix,</category>
-        
-        <category>cachix,</category>
-        
-        <category>cache,</category>
-        
-        <category>haskell,</category>
-        
-        <category>scala,</category>
-        
-        <category>nix-shell,</category>
-        
-        <category>dhall</category>
         
       </item>
     
