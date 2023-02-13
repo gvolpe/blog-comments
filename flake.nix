@@ -12,7 +12,6 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           ruby = pkgs.ruby_2_7;
-          rubygems = (pkgs.rubygems.override { ruby = ruby; });
           bundle = "${ruby}/bin/bundle";
         in
         {
@@ -32,5 +31,5 @@
           };
         };
     in
-    flake-utils.lib.eachDefaultSystem forSystem; # // app;
+    flake-utils.lib.eachDefaultSystem forSystem;
 }
