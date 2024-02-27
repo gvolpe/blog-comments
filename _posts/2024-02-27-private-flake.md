@@ -10,7 +10,7 @@ github_comments_issueid: "26"
 
 I blogged about [Garnix](../garnix) before, and it's the solution I've been using ever since for continuous integration. However, one thing I was missing was that private flakes were unsupported, so I had to live with a private local flake that I was commenting out on my public flake for a long time.
 
-Github Actions does support building private flakes by providing an access token, but it's not very secure if your builds end up on a public cache anyway... Garnix recently added [support for private inputs](https://garnix.io/docs/private_inputs), but it comes with some limitations (mainly due to security), so I could not take advantage of this new feature.
+Github Actions does support building private flakes by providing an access token, but it's not very secure if your builds end up on a public cache anyway (not my case, though)... Garnix recently added [support for private inputs](https://garnix.io/docs/private_inputs), but it comes with some limitations (mainly due to security), so I could not take advantage of this new feature.
 
 Unhappy with my current situation, and armed with some extra motivation, I decided to take a completely different approach... Also, I realized I hadn't blogged in more than year! Time to fix it.
 
@@ -93,7 +93,7 @@ And here's how my public flake defines its outputs right now (simple enough, no?
 }
 {% endhighlight %}
 
-It can still be built independently with sane defaults, but it's also extendable from a private flake.
+It can still be built independently with sane defaults, but it's also extendable from other flakes.
 
 ### Private flake
 
@@ -131,7 +131,7 @@ I realized that my system was building, but that all my secrets were not present
 
 This was the case because I use `git-crypt` on my public repo to encrypt them; one more obstacle on the road to finally nail this...
 
-The first step was to refactor all my public encrypted secrets and centralize them in a single overlay, so here's how I define it now:
+The next step was to refactor all my public encrypted secrets and centralize them in a single overlay, so here's how I define them now:
 
 {% highlight nix %}
 {
@@ -142,7 +142,7 @@ The first step was to refactor all my public encrypted secrets and centralize th
 }
 {% endhighlight %}
 
-This means I no longer need `git-crypt` in my public repo, but it [doesn't](https://gist.github.com/marcopaganini/62fc51a679f8985c10c3ca5d0c84031c) seem [trivial](https://github.com/AGWA/git-crypt/issues/170) to [remove it](https://github.com/AGWA/git-crypt/issues/137), so I'll get to that another day.
+This means I no longer need `git-crypt` in my public repo, but it [doesn't](https://gist.github.com/marcopaganini/62fc51a679f8985c10c3ca5d0c84031c) seem [trivial](https://github.com/AGWA/git-crypt/issues/170) to [remove it](https://github.com/AGWA/git-crypt/issues/137), so I'll get to that another day 🙄
 
 Thus, all I have to do in my private flake is to override all these secrets in the custom overlay. Here's the `secrets.nix` file you can see referenced in the overlay above --- only showing a single secret for brevity.
 
@@ -159,7 +159,7 @@ Thus, all I have to do in my private flake is to override all these secrets in t
 }
 {% endhighlight %}
  
-I continue to use the [secretsManager](https://github.com/gvolpe/nix-config/blob/a1db9d16c403cad14a0ec98c6fc55b491920806d/lib/default.nix#L23) function from my public flake, which also depends on the file being encrypted with `git-crypt`.
+I continue to use the [secretsManager](https://github.com/gvolpe/nix-config/blob/a1db9d16c403cad14a0ec98c6fc55b491920806d/lib/default.nix#L23) function from my public flake, which also depends on the file being encrypted with `git-crypt`. This is how my secrets don't end up on a public cache.
  
 Thus, I had to move all my secrets from the public repo to my private one, and set up `git-crypt` once again. Though, that's a one-time thing and I'm much happier they now live in a private repository instead.
 
