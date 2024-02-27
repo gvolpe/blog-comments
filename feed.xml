@@ -5,9 +5,218 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 13 Feb 2023 20:42:56 +0000</pubDate>
-    <lastBuildDate>Mon, 13 Feb 2023 20:42:56 +0000</lastBuildDate>
+    <pubDate>Tue, 27 Feb 2024 17:57:23 +0000</pubDate>
+    <lastBuildDate>Tue, 27 Feb 2024 17:57:23 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
+    
+      <item>
+        <title>Private Nix flake 🔒</title>
+        <description>&lt;h2 id=&quot;introduction&quot;&gt;Introduction&lt;/h2&gt;
+
+&lt;p&gt;I blogged about &lt;a href=&quot;../garnix&quot;&gt;Garnix&lt;/a&gt; before, and it’s the solution I’ve been using ever since for continuous integration. However, one thing I was missing was that private flakes were unsupported, so I had to live with a private local flake that I was commenting out on my public flake for a long time.&lt;/p&gt;
+
+&lt;p&gt;Github Actions does support building private flakes by providing an access token, but it’s not very secure if your builds end up on a public cache anyway (not my case, though)… Garnix recently added &lt;a href=&quot;https://garnix.io/docs/private_inputs&quot;&gt;support for private inputs&lt;/a&gt;, but it comes with some limitations (mainly due to security), so I could not take advantage of this new feature.&lt;/p&gt;
+
+&lt;p&gt;Unhappy with my current situation, and armed with some extra motivation, I decided to take a completely different approach… Also, I realized I hadn’t blogged in more than year! Time to fix it.&lt;/p&gt;
+
+&lt;h3 id=&quot;former-settings&quot;&gt;Former settings&lt;/h3&gt;
+
+&lt;p&gt;The flake I was commenting out on my public configuration only exposed an overlay, and looked as follows on my inputs:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;ss&quot;&gt;private-flake =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:gvolpe/private-flake&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Then I would add the private overlay only when the private flake was present in my inputs, so it could also build on CI.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;ss&quot;&gt;privateOverlay =&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;builtins&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;hasAttr &lt;span class=&quot;s2&quot;&gt;&amp;quot;private-flake&amp;quot;&lt;/span&gt; inputs&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;then&lt;/span&gt; private-flake&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;overlays&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;default
+  &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;f&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; p&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It served its purpose, but I got tired of git-stashing these changes every time I had to update my flake.&lt;/p&gt;
+
+&lt;h3 id=&quot;rethinking-public-flake&quot;&gt;Rethinking public flake&lt;/h3&gt;
+
+&lt;p&gt;The solution was clear: &lt;em&gt;invert the dependency graph&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;Instead of pulling my private flake’s overlays into my public configuration, why not doing it the other way around? To be frank, this is something I’ve thought of many times, but I was always too lazy to do anything about it ¯\_(ツ)_/¯&lt;/p&gt;
+
+&lt;p&gt;Strangely enough, not this time around, so I was ready to tackle it once and for all.&lt;/p&gt;
+
+&lt;p&gt;Here’s what my public flake’s outputs look like before:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;homeConfigurations =&lt;/span&gt;
+    &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/home-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system pkgs extraArgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;nixosConfigurations =&lt;/span&gt;
+    &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/nixos-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system pkgs extraArgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I wanted my private flake to be able to build these configurations with a custom &lt;code&gt;pkgs&lt;/code&gt; instance, so the first step was to refactor these and make them builder methods on my main overlay.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;buildersOverlay =&lt;/span&gt; f&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; p&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;mkHomeConfigurations =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; pkgs &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; f &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+      &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/home-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs pkgs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    &lt;span class=&quot;ss&quot;&gt;mkNixosConfigurations =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; pkgs &lt;span class=&quot;o&quot;&gt;?&lt;/span&gt; f &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+      &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/outputs/nixos-conf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs pkgs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;And here’s how my public flake defines its outputs right now (simple enough, no?):&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;outputs =&lt;/span&gt; inputs&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;system =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;x86_64-linux&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+      &lt;span class=&quot;ss&quot;&gt;overlays =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/lib/overlays.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; inputs system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+      &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nixpkgs &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; overlays system&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;allowUnfree =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;inherit&lt;/span&gt; pkgs overlays&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+      &lt;span class=&quot;ss&quot;&gt;homeConfigurations =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkHomeConfigurations &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;nixosConfigurations =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkNixosConfigurations &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It can still be built independently with sane defaults, but it’s also extendable from other flakes.&lt;/p&gt;
+
+&lt;h3 id=&quot;private-flake&quot;&gt;Private flake&lt;/h3&gt;
+
+&lt;p&gt;Refactor done on the public side, now it was time to focus on the private flake. The entire &lt;code&gt;flake.nix&lt;/code&gt; definition is only 17 lines long! Neat, don’t you think?&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;description =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;My private flake&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  inputs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;nix-config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;url =&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;github:gvolpe/nix-config&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;ss&quot;&gt;outputs =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; nix-config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;pkgs =&lt;/span&gt; nix-config&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;extend &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;l&quot;&gt;modules/overlay.nix&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;homeConfigurations =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkHomeConfigurations &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+      &lt;span class=&quot;ss&quot;&gt;nixosConfigurations =&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkNixosConfigurations &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Both Home Manager and NixOS configurations can be built by reusing the public config’s &lt;code&gt;pkgs&lt;/code&gt; instance, which is extended with a custom overlay.&lt;/p&gt;
+
+&lt;p&gt;The custom overlay used to contain only private stuff, but now it also contains a secrets override (more on this below):&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;f&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; p&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;secrets =&lt;/span&gt; p&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;callPackage &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/secrets.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  private&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;stuff =&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/private-stuff.nix&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I realized that my system was building, but that all my secrets were not present! \_(o_o)_/&lt;/p&gt;
+
+&lt;p&gt;This was the case because I use &lt;code&gt;git-crypt&lt;/code&gt; on my public repo to encrypt them; one more obstacle on the road to finally nail this…&lt;/p&gt;
+
+&lt;p&gt;The next step was to refactor all my public encrypted secrets and centralize them in a single overlay, so here’s how I define them now:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;githubToken =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;OVERRIDE_ME&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;mimeoAssociations =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;ngrokToken =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;OVERRIDE_ME&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;openaiApiKey =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;OVERRIDE_ME&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This means I no longer need &lt;code&gt;git-crypt&lt;/code&gt; in my public repo, but it &lt;a href=&quot;https://gist.github.com/marcopaganini/62fc51a679f8985c10c3ca5d0c84031c&quot;&gt;doesn’t&lt;/a&gt; seem &lt;a href=&quot;https://github.com/AGWA/git-crypt/issues/170&quot;&gt;trivial&lt;/a&gt; to &lt;a href=&quot;https://github.com/AGWA/git-crypt/issues/137&quot;&gt;remove it&lt;/a&gt;, so I’ll get to that another day 🙄&lt;/p&gt;
+
+&lt;p&gt;Thus, all I have to do in my private flake is to override all these secrets in the custom overlay. Here’s the &lt;code&gt;secrets.nix&lt;/code&gt; file you can see referenced in the overlay above — only showing a single secret for brevity.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;ss&quot;&gt;githubToken =&lt;/span&gt; lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;secretManager &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;filepath =&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/secrets/github-token&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;fileAction =&lt;/span&gt; lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;readFile&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;encryptedSha256 =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;ce08397723eb2c8ae9673de34fab11db8799062c2659c673b4eddbfa4e05b8e1&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;ss&quot;&gt;emptyValue =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I continue to use the &lt;a href=&quot;https://github.com/gvolpe/nix-config/blob/a1db9d16c403cad14a0ec98c6fc55b491920806d/lib/default.nix#L23&quot;&gt;secretsManager&lt;/a&gt; function from my public flake, which also depends on the file being encrypted with &lt;code&gt;git-crypt&lt;/code&gt;. This is how my secrets don’t end up on a public cache.&lt;/p&gt;
+
+&lt;p&gt;Thus, I had to move all my secrets from the public repo to my private one, and set up &lt;code&gt;git-crypt&lt;/code&gt; once again. Though, that’s a one-time thing and I’m much happier they now live in a private repository instead.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;REPL superpower&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;To quickly debug if the secrets are being set as expected, you can’t beat the REPL.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;nix repl
+Welcome to Nix 2.20.3. Type :? &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; help.
+
+nix-repl&amp;gt; :lf .
+Added &lt;span class=&quot;m&quot;&gt;15&lt;/span&gt; variables.
+
+nix-repl&amp;gt; inputs.nix-config.pkgs.secrets.githubToken
+&lt;span class=&quot;s2&quot;&gt;&amp;quot;OVERRIDE_ME&amp;quot;&lt;/span&gt;
+
+nix-repl&amp;gt; outputs.homeConfigurations.gvolpe-hdmi.pkgs.secrets.githubToken
+&lt;span class=&quot;s2&quot;&gt;&amp;quot;this-secret-has-been-set-in-the-overlay&amp;quot;&lt;/span&gt;
+
+nix-repl&amp;gt; outputs.nixosConfigurations.tongfang-amd.pkgs.secrets.githubToken
+&lt;span class=&quot;s2&quot;&gt;&amp;quot;this-secret-has-been-set-in-the-overlay&amp;quot;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I absolutely love this extra capability nix gives us! It feels like a superpower 🥷&lt;/p&gt;
+
+&lt;h3 id=&quot;continuous-integration&quot;&gt;Continuous integration&lt;/h3&gt;
+
+&lt;p&gt;With Garnix now supporting private flakes, I just needed to ensure the Garnix App had access to my private repo, as well as setting the right options on my &lt;code&gt;garnix.yaml&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;l-Scalar-Plain&quot;&gt;enableGithubOrgAccessTokens&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l-Scalar-Plain&quot;&gt;true&lt;/span&gt;
+&lt;span class=&quot;l-Scalar-Plain&quot;&gt;builds&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt;
+ &lt;span class=&quot;l-Scalar-Plain&quot;&gt;exclude&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p-Indicator&quot;&gt;[]&lt;/span&gt;
+ &lt;span class=&quot;l-Scalar-Plain&quot;&gt;include&lt;/span&gt;&lt;span class=&quot;p-Indicator&quot;&gt;:&lt;/span&gt;
+ &lt;span class=&quot;p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l-Scalar-Plain&quot;&gt;homeConfigurations.*&lt;/span&gt;
+ &lt;span class=&quot;p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l-Scalar-Plain&quot;&gt;nixosConfigurations.*&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Once it was all set, I had my private flake successfully building my Home Manager and NixOS configurations on Garnix in no time!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;../images/garnix-private-build.png&quot; alt=&quot;summary&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://garnix.io/&quot;&gt;Garnix&lt;/a&gt; rocks! Now even more with a revamped website and UI :)&lt;/p&gt;
+
+&lt;h3 id=&quot;closing-remarks&quot;&gt;Closing remarks&lt;/h3&gt;
+
+&lt;p&gt;I must say I’m quite satisfied with my current solution, but we all know this is an eternal tinkering process, so I won’t lie to you (and to myself) by claiming this is its final form :)&lt;/p&gt;
+
+&lt;p&gt;Perhaps, the only area that could use some improvement would be the management of secrets, but I don’t have a big need for it as my secrets are trivial and I don’t do remote server deployments and provisioning, so for now that’s not something I’m willing to spend time on.&lt;/p&gt;
+
+&lt;p&gt;What do you think? Anything else you would improve or do differently? Let me know in the comments below!&lt;/p&gt;
+
+&lt;p&gt;Best,
+Gabriel.&lt;/p&gt;
+</description>
+        <pubDate>Tue, 27 Feb 2024 22:00:00 +0000</pubDate>
+        <link>https://gvolpe.github.io/blog/private-flake/</link>
+        <guid isPermaLink="true">https://gvolpe.github.io/blog/private-flake/</guid>
+        
+        
+        <category>nix,</category>
+        
+        <category>flakes,</category>
+        
+        <category>ci,</category>
+        
+        <category>cache,</category>
+        
+        <category>garnix,</category>
+        
+        <category>private</category>
+        
+      </item>
     
       <item>
         <title>Nix remote builds</title>
@@ -2468,175 +2677,6 @@ Gabriel.&lt;/p&gt;
         <category>wm,</category>
         
         <category>windowmanager</category>
-        
-      </item>
-    
-      <item>
-        <title>Gnome 3 on NixOS</title>
-        <description>&lt;p&gt;&lt;a href=&quot;https://nixos.org/&quot;&gt;NixOS&lt;/a&gt; can be configured to run any desktop environment you want and &lt;a href=&quot;https://www.gnome.org/gnome-3/&quot;&gt;Gnome 3&lt;/a&gt; is not an exception. However, it comes with some caveats so keep reading if you are interested in making this duo work seamlessly.&lt;/p&gt;
-
-&lt;p&gt;Users who enjoy a graphical environment normally like to tweak it with their own preferences as well. E.g. installing new &lt;a href=&quot;https://extensions.gnome.org/&quot;&gt;extensions&lt;/a&gt;, changing the background image, changing the dock, etc. These are some of the tasks that &lt;a href=&quot;https://wiki.gnome.org/Apps/Tweaks&quot;&gt;Gnome Tweaks&lt;/a&gt; makes possible in Gnome 3.&lt;/p&gt;
-
-&lt;p&gt;Except, if you are in NixOS, I’m guessing you’d like to have all these tweaks declared in a configuration file so the next time you rebuild your system they are preserved, am I right?&lt;/p&gt;
-
-&lt;h3 id=&quot;nixos-configuration&quot;&gt;NixOS configuration&lt;/h3&gt;
-
-&lt;p&gt;First of all, we want to enable Gnome 3 as our default desktop manager in our &lt;code&gt;/etc/nixos/configuration.nix&lt;/code&gt; file.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;ss&quot;&gt;services =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;xserver =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;ss&quot;&gt;layout =&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;us&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    displayManager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gdm&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    displayManager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gdm&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;wayland =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    desktopManager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-
-  dbus&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;packages =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;dconf &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-  udev&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;packages =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; pkgs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome-settings-daemon &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://wayland.freedesktop.org/&quot;&gt;Wayland&lt;/a&gt; is a modern replacement for &lt;a href=&quot;https://www.x.org/wiki/&quot;&gt;X&lt;/a&gt;. I tried it out for a while and it worked pretty well but unfortunately some functionality like screen-sharing is broken, reason why I have it disabled.&lt;/p&gt;
-
-&lt;p&gt;Additionally, you need &lt;code&gt;dconf&lt;/code&gt; and &lt;code&gt;gnome-settings-daemon&lt;/code&gt; running as a service to configure Gnome 3. This is all we need at the system level.&lt;/p&gt;
-
-&lt;h3 id=&quot;home-manager&quot;&gt;Home Manager&lt;/h3&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://github.com/rycee/home-manager&quot;&gt;Home Manager&lt;/a&gt; is a great tool that manages all the software you want to install at the user level and all the configuration that comes with it. For example, Vim, Fish shell, Tmux, etc.&lt;/p&gt;
-
-&lt;p&gt;It can also manage Gnome extensions for us. Here’s an example:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; stdenv&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
-
-&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  programs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;home-manager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-
-  home&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;packages =&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;with&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
-    &lt;span class=&quot;c1&quot;&gt;# gnome3 apps&lt;/span&gt;
-    gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;eog    &lt;span class=&quot;c1&quot;&gt;# image viewer&lt;/span&gt;
-    gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;evince &lt;span class=&quot;c1&quot;&gt;# pdf reader&lt;/span&gt;
-
-    &lt;span class=&quot;c1&quot;&gt;# desktop look &amp;amp; feel&lt;/span&gt;
-    gnome3&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gnome-tweak-tool
-
-    &lt;span class=&quot;c1&quot;&gt;# extensions&lt;/span&gt;
-    gnomeExtensions&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;appindicator
-    gnomeExtensions&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;dash-to-dock
-  &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;After running &lt;code&gt;home-manager switch&lt;/code&gt;, if the build succeeded, you will see these extensions installed in Gnome Tweaks. Now we can go ahead, turn them on and configure each extension as we like. Next day we install another extension, say &lt;code&gt;gnomeExtensions.battery-status&lt;/code&gt;, and again run &lt;code&gt;home-manager switch&lt;/code&gt;. You will find out that all the three extensions are now installed but that you have lost the changes made to the configuration of the extensions!&lt;/p&gt;
-
-&lt;p&gt;As I previously mentioned, Gnome 3’s configuration is managed by &lt;code&gt;dconf&lt;/code&gt;. You can get a description of the configuration by running the following command:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;dconf dump / &amp;gt; dconf.settings&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;It will have content similar to the one below.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; org/gnome/desktop/peripherals/mouse &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
-natural-scroll&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;false&lt;/span&gt;
-&lt;span class=&quot;nv&quot;&gt;speed&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;-0.5
-
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; org/gnome/desktop/peripherals/touchpad &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
-tap-to-click&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;false&lt;/span&gt;
-two-finger-scrolling-enabled&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;
-
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;org/gnome/desktop/input-sources&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
-&lt;span class=&quot;nv&quot;&gt;current&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;uint32 0
-&lt;span class=&quot;nv&quot;&gt;sources&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=[(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;xkb&amp;#39;&lt;/span&gt;, &lt;span class=&quot;s1&quot;&gt;&amp;#39;us&amp;#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)]&lt;/span&gt;
-xkb-options&lt;span class=&quot;o&quot;&gt;=[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39; terminate:ctrl_alt_bksp &amp;#39;&lt;/span&gt;, &lt;span class=&quot;s1&quot;&gt;&amp;#39; lv3:ralt_switch &amp;#39;&lt;/span&gt;, &lt;span class=&quot;s1&quot;&gt;&amp;#39; caps:ctrl_modifier &amp;#39;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
-
-&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; org/gnome/desktop/screensaver &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
-picture-uri&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39; file:///home/gvolpe/Pictures/nixos.png &amp;#39;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;Home Manager provides a &lt;a href=&quot;https://rycee.gitlab.io/home-manager/options.html#opt-dconf.settings&quot;&gt;dconf.settings&lt;/a&gt; option we can use to configure &lt;code&gt;dconf&lt;/code&gt;. However, we need to write it in Nix instead. The configuration above will look as follows:&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
-
-&lt;span class=&quot;k&quot;&gt;let&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;mkTuple =&lt;/span&gt; lib&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;hm&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;gvariant&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;mkTuple&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  dconf&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;settings =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;org/gnome/desktop/peripherals/mouse&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;s2&quot;&gt;&amp;quot;natural-scroll&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-      &lt;span class=&quot;s2&quot;&gt;&amp;quot;speed&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;org/gnome/desktop/peripherals/touchpad&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;s2&quot;&gt;&amp;quot;tap-to-click&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-      &lt;span class=&quot;s2&quot;&gt;&amp;quot;two-finger-scrolling-enabled&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;org/gnome/desktop/input-sources&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;s2&quot;&gt;&amp;quot;current&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;uint32 0&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-      &lt;span class=&quot;s2&quot;&gt;&amp;quot;sources&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;mkTuple &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;xkb&amp;quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;us&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;])&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-      &lt;span class=&quot;s2&quot;&gt;&amp;quot;xkb-options&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;terminate:ctrl_alt_bksp&amp;quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;lv3:ralt_switch&amp;quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;caps:ctrl_modifier&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;org/gnome/desktop/screensaver&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;s2&quot;&gt;&amp;quot;picture-uri&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;file:///home/gvolpe/Pictures/nixos.png&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;As we can see, it is a bit tedious to write all of this manually.&lt;/p&gt;
-
-&lt;h3 id=&quot;dconf2nix&quot;&gt;dconf2nix&lt;/h3&gt;
-
-&lt;p&gt;So I recently made available a tool called &lt;a href=&quot;https://github.com/gvolpe/dconf2nix&quot;&gt;dconf2nix&lt;/a&gt;, which automates this conversion. It is written in a few lines of Haskell, thanks to the expressiveness of parser combinators.&lt;/p&gt;
-
-&lt;p&gt;Once you get the dump of the &lt;code&gt;dconf&lt;/code&gt; configuration, you’re just a command away from getting it in the Nix format as expected by Home Manager.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;dconf2nix -i dconf.settings -o dconf.nix&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;To keep the modularity, it is a good practice to keep the &lt;code&gt;dconf.nix&lt;/code&gt; as is, and import it in your &lt;code&gt;home.nix&lt;/code&gt; file instead.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; config&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; pkgs&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; stdenv&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; lib&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;...&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}:&lt;/span&gt;
-
-&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  programs&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;home-manager&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;enable =&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-
-  &lt;span class=&quot;ss&quot;&gt;imports =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;l&quot;&gt;/dconf.nix&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;And that’s it! Next time you make changes in the UI, make sure to also update the &lt;code&gt;dconf.nix&lt;/code&gt; file. For instance, you may want to enable some extensions by default.&lt;/p&gt;
-
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-nix&quot; data-lang=&quot;nix&quot;&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;org/gnome/shell&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;command-history =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;gnome-tweaks&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;enabled-extensions =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;horizontal-workspaces@gnome-shell-extensions.gcampax.github.com&amp;quot;&lt;/span&gt;
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;dash-to-dock@micxgx.gmail.com&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-  &lt;span class=&quot;ss&quot;&gt;favorite-apps =&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;chromium-browser.desktop&amp;quot;&lt;/span&gt;
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;spotify.desktop&amp;quot;&lt;/span&gt;
-    &lt;span class=&quot;s2&quot;&gt;&amp;quot;org.gnome.tweaks.desktop&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-
-&lt;p&gt;You can have a look at my &lt;a href=&quot;https://github.com/gvolpe/nix-config&quot;&gt;NixOS configuration&lt;/a&gt;, where I have also configured some custom Gnome extensions and a bunch of other stuff.&lt;/p&gt;
-
-&lt;p&gt;Have fun with Nix! And if you happen to find any issue with &lt;a href=&quot;https://github.com/gvolpe/dconf2nix&quot;&gt;dconf2nix&lt;/a&gt;, please report it, as it is quite new and there might be some missing edge cases.&lt;/p&gt;
-
-&lt;p&gt;Cheers,
-Gabriel.&lt;/p&gt;
-</description>
-        <pubDate>Wed, 01 Jul 2020 21:58:00 +0000</pubDate>
-        <link>https://gvolpe.github.io/blog/gnome3-on-nixos/</link>
-        <guid isPermaLink="true">https://gvolpe.github.io/blog/gnome3-on-nixos/</guid>
-        
-        
-        <category>nix,</category>
-        
-        <category>nixos,</category>
-        
-        <category>gnome,</category>
-        
-        <category>linux,</category>
-        
-        <category>dconf,</category>
-        
-        <category>home-manager</category>
         
       </item>
     

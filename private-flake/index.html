@@ -1,0 +1,90 @@
+<!DOCTYPE html> <html lang="en-uk"> <head> <meta charset="utf-8"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1"> <title> Private Nix flake 🔒 &bull; gvolpe's blog </title> <meta name="description" content="Introduction"> <link rel="stylesheet" href="/blog/css/main.css"> <link rel="canonical" href="https://gvolpe.github.io/blog/private-flake/"> <link rel="alternate" type="application/rss+xml" title="gvolpe's blog" href="https://gvolpe.github.io/blog/feed.xml" /> <script defer type="text/javascript" src="https://api.pirsch.io/pirsch.js" id="pirschjs" data-code="db2twsz97grcqToSsEMhvcQXm8rLaFmQ"> </script> </head> <body class="single"> <main class="main"> <header class="header"> <div class="overlay"> <div class="container"> <h1 class="title"> <a href="/blog/">gvolpe's blog</a> </h1> <nav class="navbar"> <a href="#" class="menu-icon"> <span></span> <span></span> <span></span> </a> <ul class="nav"> <li><a href="https://gvolpe.com" target="_blank">Website</a></li> </ul> </nav> </div> </div> </header> <article class="post container card"> <header class="post-header"> <h1 class="post-title">Private Nix flake 🔒</h1> <span class="post-meta"> <time class="post-date" datetime="2024-02-27">Feb 27, 2024</time> <span class="post-author">by Gabriel Volpe</span> </span> </header> <div class="post-content"> <h2 id="introduction">Introduction</h2> <p>I blogged about <a href="../garnix">Garnix</a> before, and it’s the solution I’ve been using ever since for continuous integration. However, one thing I was missing was that private flakes were unsupported, so I had to live with a private local flake that I was commenting out on my public flake for a long time.</p> <p>Github Actions does support building private flakes by providing an access token, but it’s not very secure if your builds end up on a public cache anyway (not my case, though)… Garnix recently added <a href="https://garnix.io/docs/private_inputs">support for private inputs</a>, but it comes with some limitations (mainly due to security), so I could not take advantage of this new feature.</p> <p>Unhappy with my current situation, and armed with some extra motivation, I decided to take a completely different approach… Also, I realized I hadn’t blogged in more than year! Time to fix it.</p> <h3 id="former-settings">Former settings</h3> <p>The flake I was commenting out on my public configuration only exposed an overlay, and looked as follows on my inputs:</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="ss">private-flake =</span> <span class="p">{</span>
+  <span class="ss">url =</span> <span class="l">github:gvolpe/private-flake</span><span class="p">;</span>
+<span class="p">};</span></code></pre></div> <p>Then I would add the private overlay only when the private flake was present in my inputs, so it could also build on CI.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="ss">privateOverlay =</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nb">builtins</span><span class="o">.</span>hasAttr <span class="s2">&quot;private-flake&quot;</span> inputs<span class="p">)</span>
+  <span class="k">then</span> private-flake<span class="o">.</span>overlays<span class="o">.</span>default
+  <span class="k">else</span> <span class="p">(</span>f<span class="p">:</span> p<span class="p">:</span> <span class="p">{</span> <span class="p">});</span></code></pre></div> <p>It served its purpose, but I got tired of git-stashing these changes every time I had to update my flake.</p> <h3 id="rethinking-public-flake">Rethinking public flake</h3> <p>The solution was clear: <em>invert the dependency graph</em>.</p> <p>Instead of pulling my private flake’s overlays into my public configuration, why not doing it the other way around? To be frank, this is something I’ve thought of many times, but I was always too lazy to do anything about it ¯\_(ツ)_/¯</p> <p>Strangely enough, not this time around, so I was ready to tackle it once and for all.</p> <p>Here’s what my public flake’s outputs look like before:</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">homeConfigurations =</span>
+    <span class="nb">import</span> <span class="o">.</span><span class="l">/outputs/home-conf.nix</span> <span class="p">{</span> <span class="k">inherit</span> inputs system pkgs extraArgs<span class="p">;</span> <span class="p">};</span>
+
+  <span class="ss">nixosConfigurations =</span>
+    <span class="nb">import</span> <span class="o">.</span><span class="l">/outputs/nixos-conf.nix</span> <span class="p">{</span> <span class="k">inherit</span> inputs system pkgs extraArgs<span class="p">;</span> <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>I wanted my private flake to be able to build these configurations with a custom <code>pkgs</code> instance, so the first step was to refactor these and make them builder methods on my main overlay.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">buildersOverlay =</span> f<span class="p">:</span> p<span class="p">:</span> <span class="p">{</span>
+    <span class="ss">mkHomeConfigurations =</span> <span class="p">{</span> pkgs <span class="o">?</span> f <span class="p">}:</span>
+      <span class="nb">import</span> <span class="o">..</span><span class="l">/outputs/home-conf.nix</span> <span class="p">{</span> <span class="k">inherit</span> inputs pkgs system<span class="p">;</span> <span class="p">};</span>
+
+    <span class="ss">mkNixosConfigurations =</span> <span class="p">{</span> pkgs <span class="o">?</span> f <span class="p">}:</span>
+      <span class="nb">import</span> <span class="o">..</span><span class="l">/outputs/nixos-conf.nix</span> <span class="p">{</span> <span class="k">inherit</span> inputs pkgs system<span class="p">;</span> <span class="p">};</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>And here’s how my public flake defines its outputs right now (simple enough, no?):</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">outputs =</span> inputs<span class="p">:</span>
+    <span class="k">let</span>
+      <span class="ss">system =</span> <span class="s2">&quot;x86_64-linux&quot;</span><span class="p">;</span>
+
+      <span class="ss">overlays =</span> <span class="nb">import</span> <span class="o">.</span><span class="l">/lib/overlays.nix</span> <span class="p">{</span> <span class="k">inherit</span> inputs system<span class="p">;</span> <span class="p">};</span>
+
+      <span class="ss">pkgs =</span> <span class="nb">import</span> inputs<span class="o">.</span>nixpkgs <span class="p">{</span>
+        <span class="k">inherit</span> overlays system<span class="p">;</span>
+        config<span class="o">.</span><span class="ss">allowUnfree =</span> <span class="no">true</span><span class="p">;</span>
+      <span class="p">};</span>
+    <span class="k">in</span>
+    <span class="p">{</span>
+      <span class="k">inherit</span> pkgs overlays<span class="p">;</span>
+
+      <span class="ss">homeConfigurations =</span> pkgs<span class="o">.</span>mkHomeConfigurations <span class="p">{</span> <span class="p">};</span>
+      <span class="ss">nixosConfigurations =</span> pkgs<span class="o">.</span>mkNixosConfigurations <span class="p">{</span> <span class="p">};</span>
+    <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>It can still be built independently with sane defaults, but it’s also extendable from other flakes.</p> <h3 id="private-flake">Private flake</h3> <p>Refactor done on the public side, now it was time to focus on the private flake. The entire <code>flake.nix</code> definition is only 17 lines long! Neat, don’t you think?</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">description =</span> <span class="s2">&quot;My private flake&quot;</span><span class="p">;</span>
+
+  inputs<span class="o">.</span>nix-config<span class="o">.</span><span class="ss">url =</span> <span class="l">github:gvolpe/nix-config</span><span class="p">;</span>
+
+  <span class="ss">outputs =</span> <span class="p">{</span> nix-config<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+    <span class="k">let</span>
+      <span class="ss">pkgs =</span> nix-config<span class="o">.</span>pkgs<span class="o">.</span>extend <span class="p">(</span><span class="nb">import</span> <span class="l">modules/overlay.nix</span><span class="p">);</span>
+    <span class="k">in</span>
+    <span class="p">{</span>
+      <span class="ss">homeConfigurations =</span> pkgs<span class="o">.</span>mkHomeConfigurations <span class="p">{</span> <span class="p">};</span>
+      <span class="ss">nixosConfigurations =</span> pkgs<span class="o">.</span>mkNixosConfigurations <span class="p">{</span> <span class="p">};</span>
+    <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>Both Home Manager and NixOS configurations can be built by reusing the public config’s <code>pkgs</code> instance, which is extended with a custom overlay.</p> <p>The custom overlay used to contain only private stuff, but now it also contains a secrets override (more on this below):</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix">f<span class="p">:</span> p<span class="p">:</span> <span class="p">{</span>
+  <span class="ss">secrets =</span> p<span class="o">.</span>callPackage <span class="o">.</span><span class="l">/secrets.nix</span> <span class="p">{</span> <span class="p">};</span>
+  private<span class="o">.</span><span class="ss">stuff =</span> <span class="nb">import</span> <span class="o">.</span><span class="l">/private-stuff.nix</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div> <p>I realized that my system was building, but that all my secrets were not present! \_(o_o)_/</p> <p>This was the case because I use <code>git-crypt</code> on my public repo to encrypt them; one more obstacle on the road to finally nail this…</p> <p>The next step was to refactor all my public encrypted secrets and centralize them in a single overlay, so here’s how I define them now:</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span>
+  <span class="ss">githubToken =</span> <span class="s2">&quot;OVERRIDE_ME&quot;</span><span class="p">;</span>
+  <span class="ss">mimeoAssociations =</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+  <span class="ss">ngrokToken =</span> <span class="s2">&quot;OVERRIDE_ME&quot;</span><span class="p">;</span>
+  <span class="ss">openaiApiKey =</span> <span class="s2">&quot;OVERRIDE_ME&quot;</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div> <p>This means I no longer need <code>git-crypt</code> in my public repo, but it <a href="https://gist.github.com/marcopaganini/62fc51a679f8985c10c3ca5d0c84031c">doesn’t</a> seem <a href="https://github.com/AGWA/git-crypt/issues/170">trivial</a> to <a href="https://github.com/AGWA/git-crypt/issues/137">remove it</a>, so I’ll get to that another day 🙄</p> <p>Thus, all I have to do in my private flake is to override all these secrets in the custom overlay. Here’s the <code>secrets.nix</code> file you can see referenced in the overlay above — only showing a single secret for brevity.</p> <div class="highlight"><pre><code class="language-nix" data-lang="nix"><span class="p">{</span> lib<span class="p">,</span> <span class="o">...</span> <span class="p">}:</span>
+
+<span class="p">{</span>
+  <span class="ss">githubToken =</span> lib<span class="o">.</span>secretManager <span class="p">{</span>
+    <span class="ss">filepath =</span> <span class="o">..</span><span class="l">/secrets/github-token</span><span class="p">;</span>
+    <span class="ss">fileAction =</span> lib<span class="o">.</span>readFile<span class="p">;</span>
+    <span class="ss">encryptedSha256 =</span> <span class="s2">&quot;ce08397723eb2c8ae9673de34fab11db8799062c2659c673b4eddbfa4e05b8e1&quot;</span><span class="p">;</span>
+    <span class="ss">emptyValue =</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">}</span></code></pre></div> <p>I continue to use the <a href="https://github.com/gvolpe/nix-config/blob/a1db9d16c403cad14a0ec98c6fc55b491920806d/lib/default.nix#L23">secretsManager</a> function from my public flake, which also depends on the file being encrypted with <code>git-crypt</code>. This is how my secrets don’t end up on a public cache.</p> <p>Thus, I had to move all my secrets from the public repo to my private one, and set up <code>git-crypt</code> once again. Though, that’s a one-time thing and I’m much happier they now live in a private repository instead.</p> <p><strong>REPL superpower</strong></p> <p>To quickly debug if the secrets are being set as expected, you can’t beat the REPL.</p> <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>nix repl
+Welcome to Nix 2.20.3. Type :? <span class="k">for</span> help.
+
+nix-repl&gt; :lf .
+Added <span class="m">15</span> variables.
+
+nix-repl&gt; inputs.nix-config.pkgs.secrets.githubToken
+<span class="s2">&quot;OVERRIDE_ME&quot;</span>
+
+nix-repl&gt; outputs.homeConfigurations.gvolpe-hdmi.pkgs.secrets.githubToken
+<span class="s2">&quot;this-secret-has-been-set-in-the-overlay&quot;</span>
+
+nix-repl&gt; outputs.nixosConfigurations.tongfang-amd.pkgs.secrets.githubToken
+<span class="s2">&quot;this-secret-has-been-set-in-the-overlay&quot;</span></code></pre></div> <p>I absolutely love this extra capability nix gives us! It feels like a superpower 🥷</p> <h3 id="continuous-integration">Continuous integration</h3> <p>With Garnix now supporting private flakes, I just needed to ensure the Garnix App had access to my private repo, as well as setting the right options on my <code>garnix.yaml</code> file.</p> <div class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="l-Scalar-Plain">enableGithubOrgAccessTokens</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">true</span>
+<span class="l-Scalar-Plain">builds</span><span class="p-Indicator">:</span>
+ <span class="l-Scalar-Plain">exclude</span><span class="p-Indicator">:</span> <span class="p-Indicator">[]</span>
+ <span class="l-Scalar-Plain">include</span><span class="p-Indicator">:</span>
+ <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">homeConfigurations.*</span>
+ <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">nixosConfigurations.*</span></code></pre></div> <p>Once it was all set, I had my private flake successfully building my Home Manager and NixOS configurations on Garnix in no time!</p> <p><img src="../images/garnix-private-build.png" alt="summary" /></p> <p><a href="https://garnix.io/">Garnix</a> rocks! Now even more with a revamped website and UI :)</p> <h3 id="closing-remarks">Closing remarks</h3> <p>I must say I’m quite satisfied with my current solution, but we all know this is an eternal tinkering process, so I won’t lie to you (and to myself) by claiming this is its final form :)</p> <p>Perhaps, the only area that could use some improvement would be the management of secrets, but I don’t have a big need for it as my secrets are trivial and I don’t do remote server deployments and provisioning, so for now that’s not something I’m willing to spend time on.</p> <p>What do you think? Anything else you would improve or do differently? Let me know in the comments below!</p> <p>Best, Gabriel.</p> <aside class="share"> <span>Share this: </span> <a href="http://twitter.com/share?text=Private Nix flake 🔒&amp;url=https://gvolpe.github.io/private-flake/&amp;hashtags=scala,haskell,fp&amp;via=volpegabriel87" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;"> <i class="fa fa-twitter-square"></i> </a> </aside> <div id="gh-comments"> <br/><br/> <h6>COMMENTS</h6> <div id="gh-comments-list"></div> </div> <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script> <script src="/blog/js/github-comments.js"> </script> <script type="text/javascript"> DoGithubComments ( "gvolpe/blog" , "26" ); </script> <noscript>Please enable JavaScript to view comments.</noscript> </div> </article> <footer class="footer t-center"> <div class="container"> <div class="social-icons"> <ul class="text-left"> <li><a href="https://twitter.com/volpegabriel87" target="_blank"><i class="fa fa-twitter"></i></a></li> </ul> </div> <small>&copy; 2024 All rights reserved. Made with <a href="http://jekyllrb.com" target="_blank">Jekyll</a> and <i class="icon icon-heart"></i></small> <small>by <a href="http://nandomoreira.me" target="_blank">nandomoreira.me</a></small> </div> </footer> </main> </body> </html></body></html>
+<!--
+// # Zetsu Jekyll theme - https://github.com/nandomoreriame/zetsu/
+// by nandomoreira.me
+-->
