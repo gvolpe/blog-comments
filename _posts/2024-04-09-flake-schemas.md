@@ -12,15 +12,15 @@ Flake schemas were [introduced by Determinate Systems](https://determinate.syste
 
 The [PR](https://github.com/NixOS/nix/pull/8892) that introduces flake schemas was submitted to `NixOS/nix` the same day the announcement was made, and it sadly remains in DRAFT mode until today. However, if you look at the comments, some expert users reported using this feature successfully, so I thought it was about time to give it a shot myself.
 
-So here's where the fun starts: in order to use it, we need *that* specific `nix` client version (from the PR) with flake schemas support, which fortunately for us, it's conveniently provided on [this flake](https://github.com/DeterminateSystems/nix-src/tree/flake-schemas).
+So here's where the fun starts: in order to use it, we need *that* specific `nix` client version (from the PR) with flake schemas support, which fortunately for us, is conveniently provided on [this flake](https://github.com/DeterminateSystems/nix-src/tree/flake-schemas).
 
 ## Sneak preview
 
-Before we look into the shenanigans we need to get through to get this working, let's appreciate for a second what it brings to the table. 
+Before we look into the shenanigans we need to get through to get this working, let's appreciate for a second what it brings to the table.
 
-Shown below is the `nix flake show` output of my [NixOS configuration](https://github.com/gvolpe/nix-config) repo:
+Shown below is a side-by-side comparison of `nix flake show`'s output on my [NixOS configuration](https://github.com/gvolpe/nix-config) flake:
 
-![schemas](../images/flake-schemas.png)
+![schemas](../images/flake-show-schemas.png)
 
 Neat! Don't you think? I was irked by the usual `homeConfigurations: unknown` output.
 
@@ -101,7 +101,9 @@ Next we have the `lib/schemas.nix` file referenced above, which defines the sche
 }
 {% endhighlight %}
 
-I've also handily exposed the `nix` client as a flake app:
+Explaining how flake schemas are actually defined is out of the scope of this post, but the meaning of "inventory", "children" and other fields is briefly documented in the linked nix PR.
+
+Moreover, the `nix` client is handily exposed as a flake app:
 
 {% highlight nix %}
 {
@@ -119,17 +121,21 @@ $ nix run github:gvolpe/nix-config#nix -- --version
 nix-schema (Nix) 2.21.0pre20240311_d76e5fb
 {% endhighlight %}
 
-### Give it a try
+### Give it a try (Linux only)
 
 You can run the following command in any of your flake repositories to see the new "show" output:
 
 {% highlight bash %}
 $ nix run github:gvolpe/nix-config#nix -- flake show
 {% endhighlight %}
+
+Notice that the `nix` client exposed on my flake is only compiled for Linux; though, you can follow the same steps and build it for other systems in the same fashion.
  
 One thing I noticed is that if your flake doesn't explicitly define `flake-schemas` as an input, then `homeManagerConfigurations` is not properly detected, but it could be something wrong with [my implementation](https://github.com/gvolpe/flake-schemas/blob/7d762079449d0ca63e92b0128c885021168c0c79/flake.nix#L242) too, no idea (if you know what's wrong, please let me know!).
  
 Another caveat of using the new command is that it's quite slow, as it seems to evaluate all outputs. For instance, it took about **~33.7 seconds** to evaluate my `nix-config` flake the first time, as shown in [this PR comment](https://github.com/gvolpe/nix-config/pull/254#issuecomment-2042471639).
+
+Furthermore, there are a few schemas like `homeModules` and `nixosModules` that are unsupported at the moment, but that's just a matter of adding the right schemas in place.
 
 ## Final thoughts
  
