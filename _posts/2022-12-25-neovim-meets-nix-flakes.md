@@ -2,7 +2,7 @@
 layout: post
 title:  "Neovim meets Nix flakes"
 date:   2022-12-25 13:45:00
-categories: neovim, nix, flakes, treesitter, scala
+categories: neovim nix flakes treesitter scala
 github_comments_issueid: "20"
 ---
 

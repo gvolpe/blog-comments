@@ -2,7 +2,7 @@
 layout: post
 title:  "Nix remote builds"
 date:   2023-02-13 22:00:00
-categories: nix, flakes, ci, cache, cachix, garnix, nixbuild, remote, builder
+categories: nix flakes ci cachix garnix nixbuild
 github_comments_issueid: "25"
 ---
 

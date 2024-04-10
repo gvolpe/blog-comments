@@ -2,7 +2,7 @@
 layout: post
 title:  "Flake Schemas"
 date:   2024-04-09 20:00:00
-categories: nix, flakes, schemas, experimental
+categories: nix nixos flakes experimental
 github_comments_issueid: "30"
 ---
 

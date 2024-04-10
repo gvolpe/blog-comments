@@ -2,7 +2,7 @@
 layout: post
 title:  "Scala 3: Error handling in FP land"
 date:   2022-02-08 17:45:00
-categories: scala3, scala, error handling, union types, either, fp, functional programming
+categories: scala error-handling fp functional-programming
 github_comments_issueid: "18"
 ---
 

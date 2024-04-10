@@ -13,7 +13,7 @@ github: https://github.com/gvolpe
 
 github_comments_repository: gvolpe/blog
 
-paginate: 2
+paginate: 5
 comments: true
 paginate_path: "/page/:num"
 

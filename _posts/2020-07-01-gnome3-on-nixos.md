@@ -2,7 +2,7 @@
 layout: post
 title:  "Gnome 3 on NixOS"
 date:   2020-07-01 21:58:00
-categories: nix, nixos, gnome, linux, dconf, home-manager
+categories: nix nixos gnome linux dconf home-manager
 github_comments_issueid: "9"
 ---
 

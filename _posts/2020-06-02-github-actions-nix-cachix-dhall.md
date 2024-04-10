@@ -2,7 +2,7 @@
 layout: post
 title:  "Github actions powered by Nix Shell & Cachix"
 date:   2020-06-02 21:58:00
-categories: ci, nix, cachix, cache, haskell, scala, nix-shell, dhall
+categories: ci nix cachix haskell scala dhall
 github_comments_issueid: "8"
 ---
 

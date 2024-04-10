@@ -2,7 +2,7 @@
 layout: post
 title:  "The art of interviewing engineers"
 date:   2020-02-11 10:56:00
-categories: software, interview
+categories: software
 comments: true
 ---
 

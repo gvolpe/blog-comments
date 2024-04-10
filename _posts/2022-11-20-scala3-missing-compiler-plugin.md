@@ -2,7 +2,7 @@
 layout: post
 title:  "Scala 3: the missing compiler plugin"
 date:   2022-11-20 10:45:00
-categories: scala3, scala, fp, functional programming, tooling, linting, linter
+categories: scala fp functional-programming tooling
 github_comments_issueid: "19"
 ---
 

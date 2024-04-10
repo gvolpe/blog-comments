@@ -2,7 +2,7 @@
 layout: post
 title:  "Setting up Ghcide in Ubuntu with Nixpkgs"
 date:   2020-03-21 19:28:00
-categories: haskell, nix, ide
+categories: haskell nix ide
 comments: true
 ---
 

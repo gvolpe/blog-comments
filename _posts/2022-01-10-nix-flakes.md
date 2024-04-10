@@ -2,7 +2,7 @@
 layout: post
 title:  "Flakes: NixOS and Home Manager migration"
 date:   2022-01-10 09:45:00
-categories: nix, nixos, linux, home-manager, flakes, flake
+categories: nix nixos linux home-manager flakes
 github_comments_issueid: "16"
 ---
 

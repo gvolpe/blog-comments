@@ -15,6 +15,16 @@ slug: single
 
     {{ content }}
 
+    <div class="post-categories">
+      <span class="post-meta">
+        <span class="post-date">Categories:</span>
+        {% for category in page.categories %}
+        <a href="{{site.baseurl}}/categories/#{{category|slugize}}">{{category}}</a>
+        {% unless forloop.last %}&nbsp;{% endunless %}
+        {% endfor %}
+      </span>
+    </div>
+
     <aside class="share">
 
       <span>Share this: </span>

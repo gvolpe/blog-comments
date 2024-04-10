@@ -6,6 +6,16 @@
       <span class="post-author">by {{ site.author.name }}</span>
     </span>
   </header>
+
+  <div class="post-categories">
+    <span class="post-meta">
+      {% for category in post.categories %}
+      <a href="{{site.baseurl}}/categories/#{{category|slugize}}">{{category}}</a>
+      {% unless forloop.last %}&nbsp;{% endunless %}
+      {% endfor %}
+    </span>
+  </div>
+
   <div class="post-content">
     {{ post.content | strip_html | truncatewords: 30 }} <a href="{{ post.url | prepend: site.baseurl }}" class="readmore">Read more &raquo;</a>
   </div>

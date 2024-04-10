@@ -6,7 +6,9 @@ slug: home
 
 <div class="post-list">
   {% for post in paginator.posts %}
-    {% include post.html %}
+    {% if post.title != "Categories" %}
+      {% include post.html %}
+    {% endif %}
   {% endfor %}
 
   {% include pagination.html %}

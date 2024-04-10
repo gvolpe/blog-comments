@@ -2,7 +2,7 @@
 layout: post
 title:  "Parallel typeclass for Haskell"
 date:   2020-04-20 21:58:00
-categories: haskell, parallel, validation, purescript, scala
+categories: haskell parallel validation purescript scala
 comments: true
 ---
 

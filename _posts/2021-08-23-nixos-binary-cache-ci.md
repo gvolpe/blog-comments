@@ -2,7 +2,7 @@
 layout: post
 title:  "NixOS: build your system on Github actions!"
 date:   2021-08-23 21:58:00
-categories: nix, nixos, linux, ci, home-manager, ci-build, github-actions
+categories: nix nixos linux ci home-manager github-actions
 github_comments_issueid: "14"
 ---
 

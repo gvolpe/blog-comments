@@ -2,7 +2,7 @@
 layout: post
 title:  "Private Nix flake 🔒"
 date:   2024-02-27 22:00:00
-categories: nix, flakes, ci, cache, garnix, private
+categories: nix nixos flakes ci garnix
 github_comments_issueid: "26"
 ---
 
