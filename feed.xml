@@ -5,8 +5,8 @@
     <description>Principled Software Craftsmanship</description>
     <link>https://gvolpe.github.io/blog/</link>
     <atom:link href="https://gvolpe.github.io/blog/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 09 Apr 2024 16:46:54 +0000</pubDate>
-    <lastBuildDate>Tue, 09 Apr 2024 16:46:54 +0000</lastBuildDate>
+    <pubDate>Wed, 10 Apr 2024 08:24:05 +0000</pubDate>
+    <lastBuildDate>Wed, 10 Apr 2024 08:24:05 +0000</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -142,11 +142,11 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/flake-schemas/</guid>
         
         
-        <category>nix,</category>
+        <category>nix</category>
         
-        <category>flakes,</category>
+        <category>nixos</category>
         
-        <category>schemas,</category>
+        <category>flakes</category>
         
         <category>experimental</category>
         
@@ -347,17 +347,15 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/private-flake/</guid>
         
         
-        <category>nix,</category>
+        <category>nix</category>
         
-        <category>flakes,</category>
+        <category>nixos</category>
         
-        <category>ci,</category>
+        <category>flakes</category>
         
-        <category>cache,</category>
+        <category>ci</category>
         
-        <category>garnix,</category>
-        
-        <category>private</category>
+        <category>garnix</category>
         
       </item>
     
@@ -483,23 +481,17 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/nix-remote-builds/</guid>
         
         
-        <category>nix,</category>
+        <category>nix</category>
         
-        <category>flakes,</category>
+        <category>flakes</category>
         
-        <category>ci,</category>
+        <category>ci</category>
         
-        <category>cache,</category>
+        <category>cachix</category>
         
-        <category>cachix,</category>
+        <category>garnix</category>
         
-        <category>garnix,</category>
-        
-        <category>nixbuild,</category>
-        
-        <category>remote,</category>
-        
-        <category>builder</category>
+        <category>nixbuild</category>
         
       </item>
     
@@ -660,15 +652,13 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/garnix/</guid>
         
         
-        <category>nix,</category>
+        <category>nix</category>
         
-        <category>flakes,</category>
+        <category>flakes</category>
         
-        <category>ci,</category>
+        <category>ci</category>
         
-        <category>cache,</category>
-        
-        <category>cachix,</category>
+        <category>cachix</category>
         
         <category>garnix</category>
         
@@ -971,13 +961,13 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/neovim-meets-nix-flakes/</guid>
         
         
-        <category>neovim,</category>
+        <category>neovim</category>
         
-        <category>nix,</category>
+        <category>nix</category>
         
-        <category>flakes,</category>
+        <category>flakes</category>
         
-        <category>treesitter,</category>
+        <category>treesitter</category>
         
         <category>scala</category>
         
@@ -1070,21 +1060,13 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/scala3-missing-compiler-plugin/</guid>
         
         
-        <category>scala3,</category>
+        <category>scala</category>
         
-        <category>scala,</category>
+        <category>fp</category>
         
-        <category>fp,</category>
+        <category>functional-programming</category>
         
-        <category>functional</category>
-        
-        <category>programming,</category>
-        
-        <category>tooling,</category>
-        
-        <category>linting,</category>
-        
-        <category>linter</category>
+        <category>tooling</category>
         
       </item>
     
@@ -1425,25 +1407,13 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/error-handling-scala3/</guid>
         
         
-        <category>scala3,</category>
+        <category>scala</category>
         
-        <category>scala,</category>
+        <category>error-handling</category>
         
-        <category>error</category>
+        <category>fp</category>
         
-        <category>handling,</category>
-        
-        <category>union</category>
-        
-        <category>types,</category>
-        
-        <category>either,</category>
-        
-        <category>fp,</category>
-        
-        <category>functional</category>
-        
-        <category>programming</category>
+        <category>functional-programming</category>
         
       </item>
     
@@ -1684,17 +1654,15 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/nix-flakes/</guid>
         
         
-        <category>nix,</category>
+        <category>nix</category>
         
-        <category>nixos,</category>
+        <category>nixos</category>
         
-        <category>linux,</category>
+        <category>linux</category>
         
-        <category>home-manager,</category>
+        <category>home-manager</category>
         
-        <category>flakes,</category>
-        
-        <category>flake</category>
+        <category>flakes</category>
         
       </item>
     
@@ -1851,17 +1819,15 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/nixos-binary-cache-ci/</guid>
         
         
-        <category>nix,</category>
+        <category>nix</category>
         
-        <category>nixos,</category>
+        <category>nixos</category>
         
-        <category>linux,</category>
+        <category>linux</category>
         
-        <category>ci,</category>
+        <category>ci</category>
         
-        <category>home-manager,</category>
-        
-        <category>ci-build,</category>
+        <category>home-manager</category>
         
         <category>github-actions</category>
         
@@ -2267,21 +2233,15 @@ Gabriel.&lt;/p&gt;
         <guid isPermaLink="true">https://gvolpe.github.io/blog/fsm-fs2-a-match-made-in-heaven/</guid>
         
         
-        <category>scala,</category>
+        <category>scala</category>
         
-        <category>fs2,</category>
+        <category>fs2</category>
         
-        <category>fsm,</category>
+        <category>fsm</category>
         
-        <category>finite</category>
+        <category>streams</category>
         
-        <category>state</category>
-        
-        <category>machine,</category>
-        
-        <category>streams,</category>
-        
-        <category>streaming,</category>
+        <category>streaming</category>
         
         <category>effects</category>
         
